@@ -1,4 +1,15 @@
 import streamlit as st
+import time
+
+# Security Check: Blocks fast automated bot clicks
+if 'last_click' in st.session_state:
+    time_since_last_click = time.time() - st.session_state['last_click']
+    if time_since_last_click < 0.5:  # If a bot clicks faster than half a second
+        st.error("Access denied. Automated scraping is prohibited.")
+        st.stop()
+
+st.session_state['last_click'] = time.time()
+import streamlit as st
 import pandas as pd
 import json
 import os
