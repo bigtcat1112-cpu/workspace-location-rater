@@ -168,3 +168,7 @@ else:
 str.markdown("<br><br>", unsafe_allow_html=True)
 str.write("---")
 str.caption("© 2026 TA workspaces. All rights reserved. Warning: Scraping or copying proprietary data from this site is strictly prohibited by our legal terms.")
+# Hidden Admin Connection at the bottom of the public site
+st.markdown("---")
+if st.button("🔒 Staff Portal"):
+    st.switch_page("pages/admin.py")
