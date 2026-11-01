@@ -1,4 +1,12 @@
 import streamlit as st
+
+# Define your official page objects
+home_page = st.Page("job.py", title="Home", icon="🏠")
+admin_page = st.Page("pages/admin.py", title="Staff Portal", icon="🔒")
+
+# Run the navigation system
+pg = st.navigation([home_page, admin_page])
+pg.run()
 import os
 import json
 import time
