@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 
 # ==============================================================================
 # SITE CONTENT & INTERFACE 
@@ -23,11 +22,11 @@ with col2:
 st.write("---")
 st.subheader("🔍 Find a Workspace")
 
-# Workspace data sample (Now with coordinates for mapping)
+# Workspace data sample
 workspaces = [
-    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8", "lat": 32.7885, "lon": -96.8058},
-    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5", "lat": 32.7555, "lon": -97.3308},
-    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2", "lat": 32.7301, "lon": -97.1143}
+    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8"},
+    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5"},
+    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2"}
 ]
 
 search_query = st.text_input("Type a city or workspace name to search:")
@@ -38,16 +37,13 @@ filtered_workspaces = [
     if search_query.lower() in ws["name"].lower() or search_query.lower() in ws["location"].lower()
 ]
 
-# --- Interactive Map Unit ---
+# --- Interactive Map Section ---
 if filtered_workspaces:
-    # Convert filtered workspaces to a Pandas DataFrame for the map widget
-    map_data = pd.DataFrame(filtered_workspaces)
-    
-    st.write("### 🗺️ Workspace Map View")
-    # Streamlit built-in map displays markers using 'lat' and 'lon' columns
-    st.map(map_data[["lat", "lon"]])
+    st.write("### 🗺️ Interactive Dashboard View")
+    # Using your classic layout map placeholder instead of st.map()
+    st.info("💡 Tip: Use your interactive map window to click pins and view live coordinates.")
 else:
-    st.warning("No workspaces found matching your search terms to plot on the map.")
+    st.warning("No workspaces found matching your search terms.")
 
 # --- Search List Breakdown ---
 st.write("### 📋 Workspace List")
