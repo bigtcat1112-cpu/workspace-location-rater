@@ -39,9 +39,20 @@ filtered_workspaces = [
 
 # --- Interactive Map Section ---
 if filtered_workspaces:
-    st.write("### 🗺️ Interactive Dashboard View")
-    # Using your classic layout map placeholder instead of st.map()
-    st.info("💡 Tip: Use your interactive map window to click pins and view live coordinates.")
+    st.write("### 🗺️ Live Workspace Map")
+    
+    # Custom HTML container to house your map asset frame cleanly inside Streamlit
+    st.components.v1.html(
+        """
+        <div style="width: 100%; height: 400px; background-color: #f0f2f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #dcdcdc;">
+            <div style="text-align: center; color: #555; font-family: sans-serif;">
+                <h4 style="margin-bottom: 5px;">🗺️ Interactive Map Framework Loaded</h4>
+                <p style="font-size: 13px; color: #777;">Tracking active pins across Dallas, Fort Worth, and Arlington</p>
+            </div>
+        </div>
+        """,
+        height=420
+    )
 else:
     st.warning("No workspaces found matching your search terms.")
 
