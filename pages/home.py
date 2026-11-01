@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 # ==============================================================================
 # SITE CONTENT & INTERFACE 
@@ -22,23 +23,41 @@ with col2:
 st.write("---")
 st.subheader("🔍 Find a Workspace")
 
-# Workspace data sample
+# Workspace data sample (Now with coordinates for mapping)
 workspaces = [
-    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8"},
-    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5"},
-    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2"}
+    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8", "lat": 32.7885, "lon": -96.8058},
+    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5", "lat": 32.7555, "lon": -97.3308},
+    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2", "lat": 32.7301, "lon": -97.1143}
 ]
 
 search_query = st.text_input("Type a city or workspace name to search:")
 
-for ws in workspaces:
-    if search_query.lower() in ws["name"].lower() or search_query.lower() in ws["location"].lower():
-        with st.container():
-            st.markdown(f"### {ws['name']}")
-            st.write(f"📍 Location: {ws['location']} | Score: {ws['rating']}")
-            if st.button(f"View Reviews for {ws['name']}", key=ws['name']):
-                st.write("Reviews loading...")
-            st.write("")
+# Filter workspaces based on search query
+filtered_workspaces = [
+    ws for ws in workspaces 
+    if search_query.lower() in ws["name"].lower() or search_query.lower() in ws["location"].lower()
+]
+
+# --- Interactive Map Unit ---
+if filtered_workspaces:
+    # Convert filtered workspaces to a Pandas DataFrame for the map widget
+    map_data = pd.DataFrame(filtered_workspaces)
+    
+    st.write("### 🗺️ Workspace Map View")
+    # Streamlit built-in map displays markers using 'lat' and 'lon' columns
+    st.map(map_data[["lat", "lon"]])
+else:
+    st.warning("No workspaces found matching your search terms to plot on the map.")
+
+# --- Search List Breakdown ---
+st.write("### 📋 Workspace List")
+for ws in filtered_workspaces:
+    with st.container():
+        st.markdown(f"#### {ws['name']}")
+        st.write(f"📍 Location: {ws['location']} | Score: {ws['rating']}")
+        if st.button(f"View Reviews for {ws['name']}", key=ws['name']):
+            st.write("Reviews loading...")
+        st.write("")
 
 # ==============================================================================
 # SECURITY & LEGAL FOOTER
