@@ -6,6 +6,21 @@ import folium
 from streamlit_folium import st_folium
 
 # -------------------------------------------------------------
+# GOOGLE SEARCH BOT OPTIMIZATION (SEO META TAGS)
+# -------------------------------------------------------------
+str.set_page_config(
+    page_title="TA workspaces - Exact Location Employer Ratings",
+    page_icon="📍",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': "TA workspaces is an independent job rater platform mapping employer treatment and safety at exact store locations across Hurst and the Fort Worth area."
+    }
+)
+
+# -------------------------------------------------------------
 # DATABASE & STORAGE MANAGEMENT
 # -------------------------------------------------------------
 DB_FILE = 'ratings_database.json'
@@ -58,10 +73,8 @@ str.caption("Employer Ratings. At Your Exact Location.")
 # INTERACTIVE WORKPLACE MAP WIDGET
 # -------------------------------------------------------------
 str.write("### 📍 Live Workplace Map Tracker")
-# Initialize map focused around your general area
 m = folium.Map(location=[32.8234, -97.1729], zoom_start=12)
 
-# Place markers for every saved location rating in our permanent database
 for r in str.session_state.ratings:
     if 'lat' in r and 'lon' in r:
         popup_info = f"<b>{r['company_name']}</b><br>Overall: {r['rating_score']}⭐<br>Treatment: {r['treatment_score']}⭐"
@@ -72,7 +85,6 @@ for r in str.session_state.ratings:
             icon=folium.Icon(color='blue', icon='info-sign')
         ).add_to(m)
 
-# Display the map inside your Streamlit dashboard
 st_folium(m, width=700, height=400)
 
 # -------------------------------------------------------------
@@ -92,7 +104,6 @@ with str.form("rating_form", clear_on_submit=True):
     
     review_text = str.text_area("Specific Workplace Concerns or Feedback")
     
-    # Coordinates for mapping (simulated for immediate pin drops)
     str.write("*Map Placement Coordinates (Optional):*")
     col1, col2 = str.columns(2)
     with col1:
@@ -110,7 +121,6 @@ with str.form("rating_form", clear_on_submit=True):
         else:
             str.session_state.last_submission_time = time.time()
             
-            # Save all the critical parts of the rating breakdown
             new_entry = {
                 'company_name': company_name,
                 'exact_location': exact_location,
@@ -140,7 +150,6 @@ else:
         str.write(f"#### 🏢 {r['company_name']}")
         str.write(f"📍 *Location:* {r['exact_location']}")
         
-        # Display each specific score breakdown
         col1, col2, col3 = str.columns(3)
         with col1:
             str.write(f"**Overall:** {'⭐' * r.get('rating_score', 3)}")
@@ -159,4 +168,3 @@ else:
 str.markdown("<br><br>", unsafe_allow_html=True)
 str.write("---")
 str.caption("© 2026 TA workspaces. All rights reserved. Warning: Scraping or copying proprietary data from this site is strictly prohibited by our legal terms.")
-
