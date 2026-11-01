@@ -14,7 +14,8 @@ def load_data():
         return []
     try:
         with open(DB_FILE, 'r') as f:
-            return json.load(f)
+            data = json.load(f)
+            return data if isinstance(data, list) else []
     except Exception:
         return []
 
@@ -38,7 +39,6 @@ def check_rate_limit():
     """Returns True if the user is submitting too quickly (bot behavior)."""
     current_time = time.time()
     time_passed = current_time - str.session_state.last_submission_time
-    # 5-second cooldown guardrail to block rapid automated scrapers
     if time_passed < 5.0:
         return False
     return True
@@ -62,21 +62,17 @@ with str.form("rating_form", clear_on_submit=True):
     rating_score = str.slider("Rating Score", 1, 5, 3)
     review_text = str.text_area("Review / Employee Concerns")
     
-       submitted = str.form_submit_button("Submit Secure Rating")
-
+    # Perfectly aligned submission button line
+    submitted = str.form_submit_button("Submit Secure Rating")
     
     if submitted:
-        # 1. Fire wall check: Verify the user isn't clicking at superhuman speeds
         if not check_rate_limit():
             str.error("Security Block: Too many requests. Please wait a few seconds before trying again.")
-        # 2. Validation check: Ensure they aren't passing empty inputs
         elif not company_name or not exact_location:
             str.error("Validation Error: Please provide both a Company Name and a specific location.")
         else:
-            # Update our security cooldown clock immediately
             str.session_state.last_submission_time = time.time()
             
-            # Format the secured object data structure
             new_entry = {
                 'company_name': company_name,
                 'exact_location': exact_location,
@@ -85,10 +81,7 @@ with str.form("rating_form", clear_on_submit=True):
                 'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
             }
             
-            # Update local state memory
             str.session_state.ratings.append(new_entry)
-            
-            # LOCK IT IN THE PERMANENT DATABASE FILE SAFELY!
             save_data(str.session_state.ratings)
             str.success("Rating submitted and encrypted into database successfully!")
 
@@ -101,7 +94,6 @@ str.write("### 🔒 Verified Workplace Location Ratings")
 if not str.session_state.ratings:
     str.info("No ratings available for this area yet.")
 else:
-    # Render in reverse order so newest ratings always land up top
     for r in reversed(str.session_state.ratings):
         str.write(f"**{r['company_name']}** — *{r['exact_location']}*")
         str.write(f"Rating: {'⭐' * r['rating_score']}")
