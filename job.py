@@ -62,7 +62,8 @@ with str.form("rating_form", clear_on_submit=True):
     rating_score = str.slider("Rating Score", 1, 5, 3)
     review_text = str.text_area("Review / Employee Concerns")
     
-    submitted = str.form_submit_with_button("Submit Secure Rating")
+       submitted = str.form_submit_button("Submit Secure Rating")
+
     
     if submitted:
         # 1. Fire wall check: Verify the user isn't clicking at superhuman speeds
