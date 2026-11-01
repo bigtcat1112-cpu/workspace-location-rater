@@ -4,7 +4,7 @@ import time
 # Security Check: Blocks fast automated bot clicks
 if 'last_click' in st.session_state:
     time_since_last_click = time.time() - st.session_state['last_click']
-    if time_since_last_click < 2.0:  # If a bot clicks faster than half a second
+    if time_since_last_click < 0.8:  # If a bot clicks faster than half a second
         st.error("Access denied. Automated scraping is prohibited.")
         st.stop()
 
@@ -166,3 +166,4 @@ with tab2:
                 save_database(db)
                 st.success(f"Pin dropped successfully! Workplace analytics permanently saved for {comp}.")
                 st.rerun()
+st.caption("© 2026 telracs. All rights reserved. Automated scraping or copying website content is strictly prohibited. Legal action will be taken against anyone who steals our ideas or data.")
