@@ -1,4 +1,6 @@
 import streamlit as st
+import folium
+from streamlit_folium import st_folium
 
 # ==============================================================================
 # SITE CONTENT & INTERFACE 
@@ -22,11 +24,11 @@ with col2:
 st.write("---")
 st.subheader("🔍 Find a Workspace")
 
-# Workspace data sample
+# Workspace data sample (with exact coordinates)
 workspaces = [
-    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8"},
-    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5"},
-    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2"}
+    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8", "lat": 32.7885, "lon": -96.8058},
+    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5", "lat": 32.7555, "lon": -97.3308},
+    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2", "lat": 32.7301, "lon": -97.1143}
 ]
 
 search_query = st.text_input("Type a city or workspace name to search:")
@@ -37,22 +39,24 @@ filtered_workspaces = [
     if search_query.lower() in ws["name"].lower() or search_query.lower() in ws["location"].lower()
 ]
 
-# --- Interactive Map Section ---
+# --- Real Interactive Map Section ---
 if filtered_workspaces:
     st.write("### 🗺️ Live Workspace Map")
     
-    # Custom HTML container to house your map asset frame cleanly inside Streamlit
-    st.components.v1.html(
-        """
-        <div style="width: 100%; height: 400px; background-color: #f0f2f6; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid #dcdcdc;">
-            <div style="text-align: center; color: #555; font-family: sans-serif;">
-                <h4 style="margin-bottom: 5px;">🗺️ Interactive Map Framework Loaded</h4>
-                <p style="font-size: 13px; color: #777;">Tracking active pins across Dallas, Fort Worth, and Arlington</p>
-            </div>
-        </div>
-        """,
-        height=420
-    )
+    # Create a real map centered around the DFW area
+    m = folium.Map(location=[32.7767, -96.7970], zoom_start=9, control_scale=True)
+    
+    # Add interactive pins for each workspace
+    for ws in filtered_workspaces:
+        folium.Marker(
+            location=[ws["lat"], ws["lon"]],
+            popup=f"<b>{ws['name']}</b><br>{ws['rating']}",
+            tooltip=ws["name"],
+            icon=folium.Icon(color="purple", icon="briefcase", prefix="fa")
+        ).add_to(m)
+    
+    # Render the real map on your Streamlit site
+    st_folium(m, width=700, height=400)
 else:
     st.warning("No workspaces found matching your search terms.")
 
