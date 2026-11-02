@@ -8,6 +8,29 @@ import pandas as pd
 # ==========================================
 st.set_page_config(page_title="TA Workspaces", page_icon="🏢", layout="wide")
 
+# Custom injection to brighten background layouts using soft greys and warm beiges
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #F7F5F0;  /* Soft Warm Bright Beige */
+        }
+        .sidebar .sidebar-content {
+            background-color: #EDEDED;  /* Clean Minimal Light Grey */
+        }
+        div[data-testid="stForm"] {
+            background-color: #FFFFFF;
+            border: 1px solid #E0DCD3;
+            border-radius: 10px;
+            padding: 25px;
+        }
+        div.stMetric {
+            background-color: #FAFAFA;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 try:
     # Stripe Flat Layout
     stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
@@ -43,7 +66,8 @@ def create_checkout_session():
 
 def fetch_reviews():
     try:
-        response = supabase.table("reviews").select("*").execute()
+        # Pull live records from your Supabase table
+        response = supabase.table("reviews").select("*").order("id", desc=True).execute()
         if response.data:
             return pd.DataFrame(response.data)
         return pd.DataFrame()
@@ -51,6 +75,7 @@ def fetch_reviews():
         # Local mock structural fallback if database connection drops
         return pd.DataFrame([
             {
+                "id": 1,
                 "company": "TA Workspaces HQ", 
                 "rating": "⭐ ⭐ ⭐ ⭐ ⭐", 
                 "latitude": 32.7555, 
@@ -64,6 +89,7 @@ def fetch_reviews():
 
 def insert_review(company, rating, lat, lon, comment, address, review_type="Review", details=""):
     try:
+        # Ensure column map variables align with data rows completely
         data = {
             "company": company, 
             "rating": str(rating), 
@@ -74,8 +100,12 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
             "type": review_type,
             "details": details
         }
+        # Step 1: Write to table
         supabase.table("reviews").insert(data).execute()
         st.success(f"🎉 {review_type} submitted successfully!")
+        
+        # Step 2: Force clean cache session update states before view render loops
+        st.cache_data.clear()
         st.rerun()
     except Exception as e:
         st.error(f"Failed to save to database: {e}")
@@ -84,16 +114,15 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
 # 3. STREAMLIT APPLICATION INTERFACE
 # ==========================================
 st.title("🏢 TA Workspaces")
-st.markdown("### Transparent Workspace Metrics & Exact Location Ratings")
+st.markdown("##### *Transparent Workspace Metrics & Exact Location Ratings*")
+st.write("---")
 
 # Combined Sidebar Tier Layout Tracker
 with st.sidebar:
     st.header("⚡ Membership Options")
+    tier = st.radio("Choose Account Action:", ["Free User Options", "Go Premium ($20/mo)"])
     
-    # Clean tier choice segmentation panel
-    tier = st.radio("Choose Account Action:", ["🆓 Free User Options", "👑 Go Premium ($20/mo)"])
-    
-    if tier == "👑 Go Premium ($20/mo)":
+    if tier == "Go Premium ($20/mo)":
         st.write("Unlock absolute unrestricted database access, custom map views, and live metric tracking portals.")
         if st.button("Launch Stripe Checkout"):
             with st.spinner("Opening secure checkout..."):
@@ -103,7 +132,7 @@ with st.sidebar:
     else:
         st.info("You're using the standard free dashboard tiers. Share your hiring status toggle on the right anytime!")
 
-# Load matching datasets
+# Load fresh matching datasets
 df_reviews = fetch_reviews()
 
 col1, col2 = st.columns(2)
@@ -126,14 +155,12 @@ with col2:
         
         if action == "📝 Leave a Detailed Review":
             st.markdown("##### 📊 Location Specific Metrics")
-            # The 5 core layout parameters metrics sliders
             slider_mgmt = st.slider("Management & Leadership", 1, 5, 5)
             slider_pay = st.slider("Pay Rate & Compensation", 1, 5, 5)
             slider_env = st.slider("Workplace Culture & Environment", 1, 5, 5)
             slider_safe = st.slider("Job Safety & Equipment Condition", 1, 5, 5)
             slider_breaks = st.slider("Break Times & Schedule Flexibility", 1, 5, 5)
             
-            # Formulate mathematical average score layout block
             avg_score = round((slider_mgmt + slider_pay + slider_env + slider_safe + slider_breaks) / 5)
             star_rating = "⭐ " * avg_score
             
@@ -161,6 +188,7 @@ with col2:
 # ==========================================
 # 4. RECENT SUBMISSIONS - SPECIFICS LAYOUT
 # ==========================================
+st.write("---")
 st.subheader("📊 Recent Workspace Activity & Location Specifics")
 
 if not df_reviews.empty:
@@ -171,18 +199,20 @@ if not df_reviews.empty:
         rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
         specs = row.get('details', '')
         
+        # Visually clean custom panels utilizing background color structures
         if row.get('type') == 'Hired Info':
             st.info(f"**🎉 {comp}** — *{addr}* \n\n**Status:** {rate} \n\n{comm}")
         else:
             st.markdown(f"""
-            #### 🏢 {comp} 
-            📍 **Specific Location:** `{addr}`
-            *Average Rating:* {rate}
-            
-            📊 **Breakdown:** `{specs}`
-            
-            > {comm}
-            ---
-            """)
+            <div style="background-color: #FFFFFF; padding: 15px; border-radius: 8px; border-left: 5px solid #D1C7BD; margin-bottom: 15px;">
+                <h4 style="margin: 0; color: #333333;">🏢 {comp}</h4>
+                <p style="margin: 5px 0; color: #666666;">📍 <b>Specific Location:</b> <code>{addr}</code></p>
+                <p style="margin: 5px 0; color: #FFB400;"><b>Average Rating:</b> {rate}</p>
+                <div style="background-color: #F5F5F5; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #555555; margin: 10px 0;">
+                    {specs}
+                </div>
+                <p style="margin: 10px 0 0 0; font-style: italic; color: #444444;">> {comm}</p>
+            </div>
+            """, unsafe_allow_html=True)
 else:
     st.info("No recent ratings found.")
