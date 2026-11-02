@@ -67,18 +67,6 @@ st.markdown("""
             margin-bottom: 15px;
             box-shadow: 0px 1px 3px rgba(0,0,0,0.05);
         }
-        
-        /* Specifics breakdown pill box background */
-        .specs-box {
-            background-color: #F5F3EE !important; 
-            padding: 8px; 
-            border-radius: 4px; 
-            font-family: monospace; 
-            font-size: 0.9em; 
-            color: #4A4844 !important; 
-            margin: 10px 0;
-            border: 1px solid #E6E2DA;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -119,18 +107,16 @@ def fetch_reviews():
     # Clear cache immediately to force an absolute fresh download layer from the server
     st.cache_data.clear()
     try:
-        # Fetching rows sorted by newest first
         response = supabase.table("reviews").select("*").execute()
         if response.data:
             return pd.DataFrame(response.data)
         return pd.DataFrame()
     except Exception as e:
-        # Local mock layout fallback if connection drops
         return pd.DataFrame()
 
 def insert_review(company, rating, lat, lon, comment):
     try:
-        # This clean column schema maps perfectly to basic core database formats
+        # Standard fallback format schema maps perfectly to basic database rows
         data = {
             "company": company, 
             "rating": str(rating), 
@@ -179,13 +165,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 DFW Workspace Location Map")
-    # Workaround: check standard spelling options for map variables
     lat_col = 'latitude' if 'latitude' in df_reviews.columns else ('lat' if 'lat' in df_reviews.columns else None)
     lon_col = 'longitude' if 'longitude' in df_reviews.columns else ('lon' if 'lon' in df_reviews.columns else None)
     
     if not df_reviews.empty and lat_col and lon_col:
         map_df = df_reviews.dropna(subset=[lat_col, lon_col])
-        # Streamlit expects fields renamed explicitly to 'latitude'/'longitude'
         map_df = map_df.rename(columns={lat_col: 'latitude', lon_col: 'longitude'})
         st.map(map_df[['latitude', 'longitude']])
     else:
@@ -211,12 +195,12 @@ with col2:
             star_rating = "⭐ " * avg_score
             
             metrics_summary = f"Management: {slider_mgmt}/5 | Pay: {slider_pay}/5 | Environment: {slider_env}/5 | Safety: {slider_safe}/5 | Breaks: {slider_breaks}/5"
-            full_comment = f"📍 Location: {target_address}\n📊 Breakdown: {metrics_summary}\n\n💬 Comments: {st.text_area('What are your exact concerns or positives about this location?')}"
+            full_comment = f"📍 **Location:** `{target_address}`\n\n📊 **Breakdown:** `{metrics_summary}`\n\n💬 **Comments:** {st.text_area('What are your exact concerns or positives about this location?')}"
         else:
             st.markdown("### 🥳 Congratulations on getting hired!")
             star_rating = "🎉 Hired!"
             user_msg = st.text_area("Tell us about your new job role! (Optional)")
-            full_comment = f"🎉 HIRED SUCCESS STORY!\n📍 Location: {target_address}\n\n💬 Status Info: {user_msg}"
+            full_comment = f"🎉 **HIRED SUCCESS STORY!**\n\n📍 **Location:** `{target_address}`\n\n💬 **Status Info:** {user_msg}"
             
         st.markdown("**Exact Coordinates (For Live Map Drop)**")
         latitude = st.number_input("Latitude", value=32.8234, format="%.4f")
@@ -236,18 +220,18 @@ st.write("---")
 st.subheader("📊 Recent Workspace Activity & Location Specifics")
 
 if not df_reviews.empty:
-# Reverse rows to show the absolute newest entries at the very top of the feed layout
-df_sorted = df_reviews.iloc[::-1]
-for index, row in df_sorted.iterrows():
-comp = row.get('company', 'Unknown Workspace')
-comm = row.get('comment', '')
-rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
-st.markdown(f"""
-
-🏢 {comp}
-Status / Rating: {rate}
-{comm}
-
-""", unsafe_allow_html=True)
+    df_sorted = df_reviews.iloc[::-1]
+    for index, row in df_sorted.iterrows():
+        comp = row.get('company', 'Unknown Workspace')
+        comm = row.get('comment', '')
+        rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
+        
+        st.markdown(f"""
+        <div class="review-card">
+            <h4 style="margin: 0;">🏢 {comp}</h4>
+            <p style="margin: 5px 0; color: #FFB400 !important;"><b>Status / Rating:</b> {rate}</p>
+            <p style="margin: 10px 0 0 0; white-space: pre-line;">{comm}</p>
+        </div>
+        """, unsafe_allow_html=True)
 else:
-st.info("No recent workspace ratings found.")
+    st.info("No recent workspace ratings found.")
