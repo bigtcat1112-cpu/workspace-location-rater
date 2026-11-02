@@ -1,4 +1,4 @@
-import streamlit as str
+import streamlit as st
 
 # 1. Check if the user is already logged in
 if "admin_authenticated" not in st.session_state:
