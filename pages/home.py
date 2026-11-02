@@ -85,7 +85,7 @@ with st.sidebar:
                 st.markdown(f"[👉 Click Here to Complete Payment]({url})")
 
 # Main Content Layout Split
-col1, col2 = st.columns()
+col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 Location Map")
