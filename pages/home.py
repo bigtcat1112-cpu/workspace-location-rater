@@ -88,11 +88,11 @@ with col1:
     st_folium(m, width=650, height=450, key="dfw_map")
     st.divider()
 
-    # ✍️ Submit Review Form (NAME REMOVED, SPECIFICS FULLY SEPARATED AND RESTORED)
+    # ✍️ Submit Review Form (NAME REMOVED, SPECIFICS CAPTURED ACCORDINGLY)
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Workspace Review")
     with st.form("review_form", clear_on_submit=True):
-        workspace_name = st.text_input("Workspace Name (e.g., Bedford Public Library, Cafe)")
+        workspace_name = st.text_input("Workspace / Company Name (e.g., Bedford Public Library, Cafe)")
         work_quality = st.slider("Work Quality Rating", 1, 5, 5)
         amenities = st.text_area("Amenities & Comments (WiFi speed, seating, noise level)")
         got_job = st.checkbox("I Got the Job! 🎉")
@@ -162,11 +162,11 @@ with col2:
     st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
 
-    # 💬 Consolidated Feed Section displaying your explicit specifics
+    # 💬 Consolidated Feed Section explicitly displaying Company Name
     st.subheader("💬 Recent Reviews")
     all_display_reviews = []
     
-    # 1. Mount session cache updates first for instant feedback
+    # 1. Mount session cache updates first with complete key fallbacks
     for lr in st.session_state["local_reviews"]:
         all_display_reviews.append({
             "workspace_name": lr.get("workspace_name") or lr.get("workspace") or "Workspace",
@@ -174,7 +174,6 @@ with col2:
             "amenities": lr.get("amenities") or lr.get("comment") or "",
             "got_job": lr.get("got_job") or False
         })
-
         
     # 2. Extract active records out from database query schema rows
     try:
@@ -182,7 +181,6 @@ with col2:
         cloud_reviews = reviews_response.data
         if cloud_reviews:
             for cr in cloud_reviews:
-                # Check for legacy table structure fallback or new column layout
                 w_name = cr.get("workspace_name") or cr.get("name", "Workspace Location")
                 w_quality = cr.get("work_quality") or cr.get("rating", 5)
                 w_amenities = cr.get("amenities") or cr.get("comment", "")
@@ -199,11 +197,11 @@ with col2:
     except:
         pass
 
-    # Print out clean list blocks displaying all your custom parameters explicitly
+    # Print out clean list blocks explicitly identifying "Company Name"
     if all_display_reviews:
         for rev in all_display_reviews:
             job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
-            st.markdown(f"### 🏢 {rev['workspace_name']}")
+            st.markdown(f"### 🏢 Company Name: {rev['workspace_name']}")
             st.markdown(f"**Rating:** {'⭐' * rev['work_quality']}{job_badge}")
             st.caption(f"\"{rev['amenities']}\"")
             st.divider()
