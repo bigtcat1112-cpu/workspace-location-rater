@@ -33,8 +33,8 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/',
-            cancel_url='https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/',
+            success_url='https://streamlit.app',
+            cancel_url='https://streamlit.app',
         )
         return session.url
     except Exception as e:
@@ -43,21 +43,27 @@ def create_checkout_session():
 
 def fetch_reviews():
     try:
-        # Pull everything live from Supabase
         response = supabase.table("reviews").select("*").execute()
         if response.data:
             return pd.DataFrame(response.data)
         return pd.DataFrame()
     except Exception as e:
-        # Fallback dummy data if connection drops
+        # Local mock structural fallback if database connection drops
         return pd.DataFrame([
-            {"company": "TA Workspaces HQ", "rating": "⭐ ⭐ ⭐ ⭐ ⭐", "latitude": 32.7555, "longitude": -97.3308, "comment": "Great place!", "type": "Review", "address": "123 Main St, Fort Worth"},
-            {"company": "Burger King", "rating": "⭐ ⭐ ⭐", "latitude": 32.8140, "longitude": -97.1729, "comment": "Average work balance.", "type": "Review", "address": "789 Highway 121, Hurst"}
+            {
+                "company": "TA Workspaces HQ", 
+                "rating": "⭐ ⭐ ⭐ ⭐ ⭐", 
+                "latitude": 32.7555, 
+                "longitude": -97.3308, 
+                "comment": "Incredible management team!", 
+                "type": "Review", 
+                "address": "123 Main St, Fort Worth",
+                "details": "Management: 5/5 | Pay: 5/5 | Environment: 5/5 | Safety: 5/5 | Breaks: 5/5"
+            }
         ])
 
-def insert_review(company, rating, lat, lon, comment, address, review_type="Review"):
+def insert_review(company, rating, lat, lon, comment, address, review_type="Review", details=""):
     try:
-        # Ensure these column names perfectly match your Supabase table columns!
         data = {
             "company": company, 
             "rating": str(rating), 
@@ -65,11 +71,11 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
             "longitude": float(lon), 
             "comment": comment,
             "address": address,
-            "type": review_type
+            "type": review_type,
+            "details": details
         }
         supabase.table("reviews").insert(data).execute()
         st.success(f"🎉 {review_type} submitted successfully!")
-        # Force rerun so it updates instantly on the screen
         st.rerun()
     except Exception as e:
         st.error(f"Failed to save to database: {e}")
@@ -80,54 +86,68 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
 st.title("🏢 TA Workspaces")
 st.markdown("### Transparent Workspace Metrics & Exact Location Ratings")
 
-# Sidebar - Premium Upgrades
+# Combined Sidebar Tier Layout Tracker
 with st.sidebar:
-    st.header("👑 Premium Access")
-    st.write("Unlock fully detailed metrics, advanced filters, and maps.")
-    if st.button("Subscribe for $20/mo"):
-        with st.spinner("Opening secure checkout..."):
-            url = create_checkout_session()
-            if url:
-                st.markdown(f"[👉 Click Here to Complete Payment]({url})")
+    st.header("⚡ Membership Options")
+    
+    # Clean tier choice segmentation panel
+    tier = st.radio("Choose Account Action:", ["🆓 Free User Options", "👑 Go Premium ($20/mo)"])
+    
+    if tier == "👑 Go Premium ($20/mo)":
+        st.write("Unlock absolute unrestricted database access, custom map views, and live metric tracking portals.")
+        if st.button("Launch Stripe Checkout"):
+            with st.spinner("Opening secure checkout..."):
+                url = create_checkout_session()
+                if url:
+                    st.markdown(f"[👉 Click Here to Complete Payment]({url})")
+    else:
+        st.info("You're using the standard free dashboard tiers. Share your hiring status toggle on the right anytime!")
 
-# Load data first so map and list stay aligned
+# Load matching datasets
 df_reviews = fetch_reviews()
 
-# Fixed column initialization (passing 2 splits it properly)
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 DFW Workspace Location Map")
-    
-    # Check for latitude/longitude columns to make sure map doesn't crash
     if not df_reviews.empty and 'latitude' in df_reviews.columns and 'longitude' in df_reviews.columns:
-        # Map needs a dataframe containing 'latitude' and 'longitude' columns
         map_df = df_reviews.dropna(subset=['latitude', 'longitude'])
         st.map(map_df[['latitude', 'longitude']])
     else:
         st.info("No location points available to display yet.")
 
 with col2:
-    # Let the user pick what action they want to do!
-    action = st.radio("Choose what to post:", ["📝 Leave a Review", "🎉 I Got the Job! (Free)"])
+    st.subheader("📝 Post Activity Interface")
+    action = st.radio("Select submission format type:", ["📝 Leave a Detailed Review", "🎉 I Got the Job! (Free)"])
     
     with st.form("submission_form", clear_on_submit=True):
         company_name = st.text_input("Company or School Name")
         target_address = st.text_input("Exact Street Address / Location Specifics")
         
-        if action == "📝 Leave a Review":
-            score = st.slider("Rating (1-5 Stars)", 1, 5, 5)
-            star_rating = "⭐ " * score
+        if action == "📝 Leave a Detailed Review":
+            st.markdown("##### 📊 Location Specific Metrics")
+            # The 5 core layout parameters metrics sliders
+            slider_mgmt = st.slider("Management & Leadership", 1, 5, 5)
+            slider_pay = st.slider("Pay Rate & Compensation", 1, 5, 5)
+            slider_env = st.slider("Workplace Culture & Environment", 1, 5, 5)
+            slider_safe = st.slider("Job Safety & Equipment Condition", 1, 5, 5)
+            slider_breaks = st.slider("Break Times & Schedule Flexibility", 1, 5, 5)
+            
+            # Formulate mathematical average score layout block
+            avg_score = round((slider_mgmt + slider_pay + slider_env + slider_safe + slider_breaks) / 5)
+            star_rating = "⭐ " * avg_score
+            
+            metrics_summary = f"Management: {slider_mgmt}/5 | Pay: {slider_pay}/5 | Environment: {slider_env}/5 | Safety: {slider_safe}/5 | Breaks: {slider_breaks}/5"
             user_comment = st.text_area("What are your exact concerns or positives about this location?")
             review_type = "Review"
         else:
-            st.markdown("### 🥳 Congratulations!")
+            st.markdown("### 🥳 Congratulations on getting hired!")
             star_rating = "🎉 Hired!"
+            metrics_summary = "Celebration Milestone Posted"
             user_comment = st.text_area("Tell us about your new job role! (Optional)")
             review_type = "Hired Info"
             
         st.markdown("**Exact Coordinates (For Live Map Drop)**")
-        # Defaulting center near Hurst area coordinates
         latitude = st.number_input("Latitude", value=32.8234, format="%.4f")
         longitude = st.number_input("Longitude", value=-97.1729, format="%.4f")
         
@@ -136,7 +156,7 @@ with col2:
             if company_name.strip() == "" or target_address.strip() == "":
                 st.warning("Please provide a valid name and specific address location.")
             else:
-                insert_review(company_name, star_rating, latitude, longitude, user_comment, target_address, review_type)
+                insert_review(company_name, star_rating, latitude, longitude, user_comment, target_address, review_type, metrics_summary)
 
 # ==========================================
 # 4. RECENT SUBMISSIONS - SPECIFICS LAYOUT
@@ -145,11 +165,11 @@ st.subheader("📊 Recent Workspace Activity & Location Specifics")
 
 if not df_reviews.empty:
     for index, row in df_reviews.iterrows():
-        # Clean defaults if missing
         comp = row.get('company', 'Unknown Work')
         addr = row.get('address', 'No specific address listed')
         comm = row.get('comment', '')
         rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
+        specs = row.get('details', '')
         
         if row.get('type') == 'Hired Info':
             st.info(f"**🎉 {comp}** — *{addr}* \n\n**Status:** {rate} \n\n{comm}")
@@ -157,7 +177,9 @@ if not df_reviews.empty:
             st.markdown(f"""
             #### 🏢 {comp} 
             📍 **Specific Location:** `{addr}`
-            *Rating:* {rate}
+            *Average Rating:* {rate}
+            
+            📊 **Breakdown:** `{specs}`
             
             > {comm}
             ---
