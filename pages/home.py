@@ -11,6 +11,23 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom Beige Styling Theme Injection
+st.markdown(
+    """
+    <style>
+    .beige-box {
+        background-color: rgba(248, 243, 239, 0.85);
+        padding: 24px;
+        border-radius: 12px;
+        border: 1px solid #eaeef2;
+        margin-bottom: 20px;
+        color: #11181c;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # 2. Initialize Supabase Connection
 @st.cache_resource
 def init_supabase() -> Client:
@@ -32,7 +49,7 @@ def track_visitor():
     try:
         supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
     except:
-        pass  # Silent fail so it doesn't break the UI layout for users
+        pass  # Silent fail so it doesn't break the layout
 
 track_visitor()
 
@@ -42,7 +59,7 @@ st.markdown("Find and review the best study and workspaces in the DFW Metroplex.
 st.divider()
 
 # Create two columns: Left for Map & Actions, Right for Reviews & Subscriptions
-col1, col2 = st.columns([2, 1.5])
+col1, col2 = st.columns([1.1, 1])
 
 with col1:
     st.subheader("📍 DFW Workspace Locations")
@@ -53,7 +70,7 @@ with col1:
         locations = locations_response.data
 
         if locations:
-            # Center the map around the DFW center point
+            # Center the map around the DFW center point (Hurst/Bedford area)
             m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
             
             # Drop interactive markers onto the map layout
@@ -74,7 +91,8 @@ with col1:
 
     st.divider()
 
-    # Submit Review Section
+    # Submit Review Section inside a Styled Beige Wrapper
+    st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Review")
     with st.form("review_form", clear_on_submit=True):
         user_name = st.text_input("Your Name")
@@ -102,9 +120,11 @@ with col1:
                     st.error(f"Failed to save your review: {e}")
             else:
                 st.warning("Please fill out both your name and comment fields.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # Stripe Premium Subscription Section
+    # Stripe Premium Subscription Section inside a Styled Beige Wrapper
+    st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
     st.markdown("**Price:** $20.00 / month")
@@ -136,6 +156,7 @@ with col2:
             supabase.table("analytics").insert({"page": "home", "type": "checkout_click"}).execute()
         except Exception as e:
             st.error(f"Stripe Checkout integration error: {e}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.divider()
 
