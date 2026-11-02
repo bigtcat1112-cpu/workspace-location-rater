@@ -33,8 +33,7 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            # Redirects back to your app seamlessly
-            success_url='https://streamlit.app{CHECKOUT_SESSION_ID}',
+            success_url='https://streamlit.app',
             cancel_url='https://streamlit.app',
         )
         return session.url
@@ -47,17 +46,25 @@ def fetch_reviews():
         response = supabase.table("reviews").select("*").execute()
         return pd.DataFrame(response.data)
     except Exception:
-        # Fallback dummy data if table isn't built yet
+        # Fallback dummy data with a clean status type column
         return pd.DataFrame([
-            {"company": "TA Workspaces HQ", "rating": 5, "lat": 32.7555, "lon": -97.3308, "comment": "Great place!"},
-            {"company": "Tech Corp", "rating": 3, "lat": 32.8140, "lon": -96.7970, "comment": "Average work balance."}
+            {"company": "TA Workspaces HQ", "rating": "⭐ ⭐ ⭐ ⭐ ⭐", "location": "Fort Worth, TX", "comment": "Great place!", "type": "Review"},
+            {"company": "Burger King", "rating": "⭐ ⭐ ⭐", "location": "Hurst, TX", "comment": "Average work balance.", "type": "Review"},
+            {"company": "Bellaire Elementary", "rating": "🎉 Secured!", "location": "Hurst, TX", "comment": "Hired as an assistant! Super excited.", "type": "Hired Info"}
         ])
 
-def insert_review(company, rating, lat, lon, comment):
+def insert_review(company, rating, lat, lon, comment, review_type="Review"):
     try:
-        data = {"company": company, "rating": rating, "lat": lat, "lon": lon, "comment": comment}
+        data = {
+            "company": company, 
+            "rating": rating, 
+            "lat": lat, 
+            "lon": lon, 
+            "comment": comment,
+            "type": review_type
+        }
         supabase.table("reviews").insert(data).execute()
-        st.success("🎉 Review submitted successfully!")
+        st.success(f"🎉 {review_type} submitted successfully!")
     except Exception as e:
         st.error(f"Failed to save to database: {e}")
 
@@ -78,10 +85,10 @@ with st.sidebar:
                 st.markdown(f"[👉 Click Here to Complete Payment]({url})")
 
 # Main Content Layout Split
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns()
 
 with col1:
-    st.subheader("📍 DFW Workspace Location Map")
+    st.subheader("📍 Location Map")
     df_reviews = fetch_reviews()
     
     if not df_reviews.empty and 'lat' in df_reviews.columns and 'lon' in df_reviews.columns:
@@ -90,25 +97,53 @@ with col1:
         st.info("No location points coordinates available to display yet.")
 
 with col2:
-    st.subheader("📝 Submit a Location Review")
-    with st.form("review_form", clear_on_submit=True):
-        company_name = st.text_input("Company Name")
-        score = st.slider("Rating (1-5 Stars)", 1, 5, 5)
+    # Let the user pick what action they want to do!
+    action = st.radio("Choose what to post:", ["📝 Leave a Review", "🎉 I Got the Job! (Free)"])
+    
+    with st.form("submission_form", clear_on_submit=True):
+        company_name = st.text_input("Company or School Name")
         
-        st.markdown("**Exact Coordinates (DFW Area Example)**")
-        latitude = st.number_input("Latitude", value=32.7555, format="%.4f")
-        longitude = st.number_input("Longitude", value=-97.3308, format="%.4f")
+        if action == "📝 Leave a Review":
+            score = st.slider("Rating (1-5 Stars)", 1, 5, 5)
+            # Create a pretty star layout text column for formatting
+            star_rating = "⭐ " * score
+            user_comment = st.text_area("Review Comment")
+            review_type = "Review"
+        else:
+            st.markdown("### 🥳 Congratulations!")
+            star_rating = "🎉 Hired!"
+            user_comment = st.text_area("Tell us about your new job role! (Optional)")
+            review_type = "Hired Info"
+            
+        st.markdown("**Exact Coordinates**")
+        latitude = st.number_input("Latitude", value=32.8234, format="%.4f")
+        longitude = st.number_input("Longitude", value=-97.1729, format="%.4f")
         
-        user_comment = st.text_area("Review Comment")
-        
-        submitted = st.form_submit_button("Submit Rating")
+        submitted = st.form_submit_button("Submit Entry")
         if submitted:
             if company_name.strip() == "":
-                st.warning("Please provide a valid company name.")
+                st.warning("Please provide a valid name.")
             else:
-                insert_review(company_name, score, latitude, longitude, user_comment)
+                insert_review(company_name, star_rating, latitude, longitude, user_comment, review_type)
 
-# Data Table view below the map
-st.subheader("📊 Recent Workspace Submissions")
+# ==========================================
+# 4. RECENT SUBMISSIONS - CLEAN FORMATTING
+# ==========================================
+st.subheader("📊 Recent Workspace Activity")
+
 if not df_reviews.empty:
-    st.dataframe(df_reviews[['company', 'rating', 'comment']], use_container_width=True)
+    # Loop over entries to show them as neat card layouts instead of a bulky raw spreadsheet tracker
+    for index, row in df_reviews.iterrows():
+        # Differentiate reviews from success hires visually
+        if row.get('type') == 'Hired Info':
+            st.info(f"**🎉 {row['company']}** — *Hired Success Announcement!* \n\n {row['comment']}")
+        else:
+            st.markdown(f"""
+            #### 🏢 {row['company']} 
+            *Rating: {row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')}*
+            
+            > {row['comment']}
+            ---
+            """)
+else:
+    st.info("No recent ratings found.")
