@@ -58,7 +58,7 @@ st.title("🚀 TA Workspaces")
 st.markdown("Find and review the best study and workspaces in the DFW Metroplex.")
 st.divider()
 
-# Create two columns (Fixed argument to split screen properly)
+# Create two columns (Split screen layout)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -83,7 +83,6 @@ with col1:
             st.info("No workspace locations found yet. Showing base map.")
             
     except Exception as e:
-        # If your Supabase URL gives a 404, show a clean warning instead of crashing the map!
         st.warning("Database connection offline. Showing offline DFW workspace base map.")
 
     # Render the map no matter what
@@ -91,7 +90,7 @@ with col1:
 
     st.divider()
 
-    # Submit Review Section inside your Beige Wrapper
+    # Submit Review Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Review")
     with st.form("review_form", clear_on_submit=True):
@@ -120,7 +119,7 @@ with col1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # Stripe Premium Subscription Section inside your Beige Wrapper
+    # Stripe Premium Subscription Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
@@ -156,12 +155,11 @@ with col2:
 
     st.divider()
 
-    # Recent Reviews Feed Section
+    # Recent Reviews Feed Section (Fixed Sort Method)
     st.subheader("💬 Recent Reviews")
     try:
-    reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
-
-      recent_reviews = reviews_response.data
+        reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
+        recent_reviews = reviews_response.data
 
         if recent_reviews:
             for rev in recent_reviews:
@@ -173,6 +171,6 @@ with col2:
     except Exception as e:
         st.error(f"Could not display recent reviews: {e}")
 
-# Copyright Legal Warning Footer Layout
+# Copyright Layout Footer
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
