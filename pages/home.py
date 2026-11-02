@@ -32,14 +32,12 @@ def save_user_to_database(username, job_title, is_premium):
 # ==========================================
 # 2. CORE DATABASE FOR DFW WORKSPACES
 # ==========================================
-# Replace these latitude and longitude points with your real location markers!
 companies_data = [
     {"name": "TA Workspaces", "location": "Hurst, TX", "rating": 5.0, "link": "https://linkedin.com", "is_featured": True, "lat": 32.8235, "lon": -97.1706},
     {"name": "Example Tech Corp", "location": "Fort Worth, TX", "rating": 4.2, "link": "https://linkedin.com", "is_featured": False, "lat": 32.7555, "lon": -97.3308},
     {"name": "DFW Logistics Hub", "location": "Euless, TX", "rating": 3.9, "link": "https://linkedin.com", "is_featured": False, "lat": 32.8371, "lon": -97.0819},
 ]
 
-# Convert the company list into a clean DataFrame for the map engine
 map_df = pd.DataFrame(companies_data)
 
 st.title("📍 TA Workspaces Location Rater")
@@ -55,7 +53,6 @@ with tab1:
     st.subheader("Interactive Workspace Map")
     st.write("See exact physical workplace scores instantly:")
     
-    # Renders your clean visual map using the DataFrame coordinates
     st.map(map_df, latitude="lat", longitude="lon", zoom=10)
     
     st.subheader("Featured & Local Directory")
@@ -83,13 +80,13 @@ with tab1:
         """
         st.markdown(card_html, unsafe_allow_html=True)
 
-# --- TAB 2: RATING SUBMISSION ENGINE ---
+# --- TAB 2: OPEN RATING SUBMISSION ENGINE ---
 with tab2:
     st.subheader("Submit a Local Review")
     st.write("Help other DFW workers by sharing your honest experience completely anonymously.")
     
     with st.form("review_submission_form", clear_on_submit=True):
-        target_company = st.selectbox("Select the business location:", [co["name"] for co in companies_data])
+        target_company = st.text_input("Company / Business Name", placeholder="e.g., McDonald's, Target, Starbucks")
         exact_address = st.text_input("Exact Physical Address / Branch location", placeholder="e.g., 712 Precinct Line Rd, Hurst, TX")
         
         col1, col2 = st.columns(2)
@@ -102,11 +99,10 @@ with tab2:
         submit_review = st.form_submit_button("Submit Anonymous Rating")
         
         if submit_review:
-            if not exact_address or not written_review:
-                st.error("Please provide the branch address and write a review summary first!")
+            if not target_company or not exact_address or not written_review:
+                st.error("Please fill out the Company Name, Branch Address, and Review details first!")
             else:
-                st.success(f"Review submitted successfully for {target_company}! (Your calculation engine will re-average this score).")
-                # TODO: Connect this to your reviews table in Supabase later!
+                st.success(f"Review submitted successfully for {target_company} located at {exact_address}!")
 
 # --- TAB 3: USER RETENTION REVENUE ENGINE ---
 with tab3:
