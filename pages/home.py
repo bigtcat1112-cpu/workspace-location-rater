@@ -88,44 +88,71 @@ with col1:
     st_folium(m, width=650, height=450, key="dfw_map")
     st.divider()
 
-    # ✍️ Submit Review Form (NAME REMOVED, SPECIFICS CAPTURED ACCORDINGLY)
+    # ✍️ Submit Review Form with All 5 Sliders, Exact Location, Good Things, and Red Flags
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Workspace Review")
     with st.form("review_form", clear_on_submit=True):
-        workspace_name = st.text_input("Workspace / Company Name (e.g., Bedford Public Library, Cafe)")
-        work_quality = st.slider("Work Quality Rating", 1, 5, 5)
-        amenities = st.text_area("Amenities & Comments (WiFi speed, seating, noise level)")
+        company_name = st.text_input("Company Name")
+        exact_location = st.text_input("Exact Location (Street Address, City)")
+        
+        st.markdown("**📊 Rate Your Experience (1-5 Stars)**")
+        rate_management = st.slider("Management Treatment", 1, 5, 5)
+        rate_environment = st.slider("Work Environment", 1, 5, 5)
+        rate_coworkers = st.slider("Co-worker Vibe", 1, 5, 5)
+        rate_schedule = st.slider("Schedule Flexibility", 1, 5, 5)
+        rate_pay = st.slider("Pay & Tips", 1, 5, 5)
+        
+        good_things = st.text_area("👍 Good Things")
+        red_flags = st.text_area("🚩 Red Flags")
         got_job = st.checkbox("I Got the Job! 🎉")
         
         submit_button = st.form_submit_button("Submit Review")
 
         if submit_button:
-            if workspace_name and amenities:
-                # Compile parameters into our review dictionary object
+            if company_name and exact_location:
+                # Calculate average for backwards compatibility displays
+                avg_rating = int(round((rate_management + rate_environment + rate_coworkers + rate_schedule + rate_pay) / 5))
+                
+                # Compile parameters into our session backup cache
                 new_review = {
-                    "workspace_name": workspace_name,
-                    "work_quality": work_quality,
-                    "amenities": amenities,
-                    "got_job": got_job
+                    "company_name": company_name,
+                    "exact_location": exact_location,
+                    "rate_management": rate_management,
+                    "rate_environment": rate_environment,
+                    "rate_coworkers": rate_coworkers,
+                    "rate_schedule": rate_schedule,
+                    "rate_pay": rate_pay,
+                    "good_things": good_things,
+                    "red_flags": red_flags,
+                    "got_job": got_job,
+                    "avg_rating": avg_rating
                 }
                 
-                # Push immediately to local stack layer for fast rendering response
                 st.session_state["local_reviews"].insert(0, new_review)
                 
-                # Push back upstream payload package to matching database columns
+                # Push back upstream to matching database columns
                 try:
                     supabase.table("reviews").insert({
-                        "workspace_name": workspace_name,
-                        "work_quality": work_quality,
-                        "amenities": amenities,
-                        "got_job": got_job
+                        "company_name": company_name,
+                        "exact_location": exact_location,
+                        "rate_management": rate_management,
+                        "rate_environment": rate_environment,
+                        "rate_coworkers": rate_coworkers,
+                        "rate_schedule": rate_schedule,
+                        "rate_pay": rate_pay,
+                        "good_things": good_things,
+                        "red_flags": red_flags,
+                        "got_job": got_job,
+                        "name": company_name,      # Legacy support
+                        "rating": avg_rating,     # Legacy support
+                        "comment": f"Good: {good_things} | Flags: {red_flags}" # Legacy support
                     }).execute()
                 except Exception as e:
                     pass
                 
                 st.rerun()
             else:
-                st.warning("Please fill out both the workspace name and amenities text fields.")
+                st.warning("Please fill out both the Company Name and Exact Location fields.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
@@ -153,61 +180,79 @@ with col2:
                 cancel_url='https://streamlit.app',
             )
             st.link_button("Complete Payment on Stripe", session.url)
-            try:
-                supabase.table("analytics").insert({"page": "home", "type": "checkout_click"}).execute()
-            except:
-                pass
         except Exception as e:
             st.error(f"Stripe Checkout integration error: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
 
-    # 💬 Consolidated Feed Section explicitly displaying Company Name
+    # 💬 Deep Specs Rating Feed Panel
     st.subheader("💬 Recent Reviews")
     all_display_reviews = []
     
-    # 1. Mount session cache updates first with complete key fallbacks
+    # 1. Pull local reviews first
     for lr in st.session_state["local_reviews"]:
         all_display_reviews.append({
-            "workspace_name": lr.get("workspace_name") or lr.get("workspace") or "Workspace",
-            "work_quality": lr.get("work_quality") or lr.get("rating") or 5,
-            "amenities": lr.get("amenities") or lr.get("comment") or "",
-            "got_job": lr.get("got_job") or False
+            "company_name": lr.get("company_name", "Workspace"),
+            "exact_location": lr.get("exact_location", "Unknown Location"),
+            "rate_management": lr.get("rate_management", 5),
+            "rate_environment": lr.get("rate_environment", 5),
+            "rate_coworkers": lr.get("rate_coworkers", 5),
+            "rate_schedule": lr.get("rate_schedule", 5),
+            "rate_pay": lr.get("rate_pay", 5),
+            "good_things": lr.get("good_things", ""),
+            "red_flags": lr.get("red_flags", ""),
+            "got_job": lr.get("got_job", False)
         })
         
-    # 2. Extract active records out from database query schema rows
+    # 2. Extract active rows out from database query schema
     try:
         reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
         cloud_reviews = reviews_response.data
         if cloud_reviews:
             for cr in cloud_reviews:
-                w_name = cr.get("workspace_name") or cr.get("name", "Workspace Location")
-                w_quality = cr.get("work_quality") or cr.get("rating", 5)
-                w_amenities = cr.get("amenities") or cr.get("comment", "")
-                w_job = cr.get("got_job") or ("🎉" in w_amenities or "Job!" in w_amenities)
-
-                # Avoid adding duplicates if already captured by local fast-push
-                if not any(r["workspace_name"].lower() == w_name.lower() and w_amenities in r["amenities"] for r in all_display_reviews):
+                c_name = cr.get("company_name") or cr.get("name", "Workspace")
+                c_loc = cr.get("exact_location") or "DFW Area"
+                
+                # Check duplicates
+                if not any(r["company_name"].lower() == c_name.lower() and r["exact_location"].lower() == c_loc.lower() for r in all_display_reviews):
                     all_display_reviews.append({
-                        "workspace_name": w_name,
-                        "work_quality": w_quality,
-                        "amenities": w_amenities,
-                        "got_job": w_job
+                        "company_name": c_name,
+                        "exact_location": c_loc,
+                        "rate_management": cr.get("rate_management") or cr.get("rating") or 5,
+                        "rate_environment": cr.get("rate_environment") or cr.get("rating") or 5,
+                        "rate_coworkers": cr.get("rate_coworkers") or cr.get("rating") or 5,
+                        "rate_schedule": cr.get("rate_schedule") or cr.get("rating") or 5,
+                        "rate_pay": cr.get("rate_pay") or cr.get("rating") or 5,
+                        "good_things": cr.get("good_things") or cr.get("comment") or "",
+                        "red_flags": cr.get("red_flags") or "",
+                        "got_job": cr.get("got_job") or ("🎉" in (cr.get("comment") or ""))
                     })
     except:
         pass
 
-    # Print out clean list blocks explicitly identifying "Company Name"
+    # Print out clean list cards displaying all 5 sub-ratings
     if all_display_reviews:
         for rev in all_display_reviews:
             job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
-            st.markdown(f"### 🏢 Company Name: {rev['workspace_name']}")
-            st.markdown(f"**Rating:** {'⭐' * rev['work_quality']}{job_badge}")
-            st.caption(f"\"{rev['amenities']}\"")
-            st.divider()
-    else:
-        st.info("No reviews logged. Be the first to catalog a location profile item!")
-
-# Copyright Layout Footer
+            st.markdown(f"### 🏢 Company Name: {rev['company_name']}")
+            st.caption(f"📍 Location: {rev['exact_location']}{job_badge}")
+            
+            # Displaying the 5 sub-metrics break-down
+            st.markdown(
+                f"""
+* 👔 Management: {'⭐' * rev['rate_management']}
+* 🏢 Environment: {'⭐' * rev['rate_environment']}
+* 👥 Co-workers: {'⭐' * rev['rate_coworkers']}
+* 📅 Flexibility: {'⭐' * rev['rate_schedule']}
+* 💰 Pay/Tips: {'⭐' * rev['rate_pay']}
+"""
+)
+if rev['good_things']:
+st.markdown(f"👍 Good Things:\n{rev['good_things']}")
+if rev['red_flags']:
+st.markdown(f"🚩 Red Flags:\n{rev['red_flags']}")
+st.divider()
+else:
+st.info("No detailed metrics logged yet. Submit a form to start the feed!")
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
