@@ -1,3 +1,33 @@
+import streamlit as str
+
+# 1. Check if the user is already logged in
+if "admin_authenticated" not in st.session_state:
+    st.session_state["admin_authenticated"] = False
+
+# 2. If they aren't logged in, show the password portal
+if not st.session_state["admin_authenticated"]:
+    st.title("🔒 Admin Portal Sign-In")
+    
+    password_input = st.text_input("Enter Admin Password:", type="password")
+    login_button = st.button("Sign In")
+    
+    if login_button:
+        # Replace 'your_secure_password' with the password you want to use!
+        if password_input == "your_secure_password":
+            st.session_state["admin_authenticated"] = True
+            st.success("Access Granted! Reloading...")
+            st.rerun()
+        else:
+            st.error("Incorrect password. Access denied.")
+            
+    # Stop the rest of the admin page from loading if they aren't logged in
+    st.stop()
+
+# -------------------------------------------------------------
+# YOUR EXISTING ADMIN CODE GOES HERE BELOW
+# (Everything below this line will be completely locked safely)
+# -------------------------------------------------------------
+st.title("Admin Dashboard")
 import streamlit as st
 from supabase import create_client, Client
 
