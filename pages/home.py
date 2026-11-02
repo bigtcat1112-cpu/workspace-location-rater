@@ -33,8 +33,8 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https://streamlit.app',
-            cancel_url='https://streamlit.app',
+            success_url='https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/',
+            cancel_url='https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/',
         )
         return session.url
     except Exception as e:
@@ -43,28 +43,34 @@ def create_checkout_session():
 
 def fetch_reviews():
     try:
+        # Pull everything live from Supabase
         response = supabase.table("reviews").select("*").execute()
-        return pd.DataFrame(response.data)
-    except Exception:
-        # Fallback dummy data with a clean status type column
+        if response.data:
+            return pd.DataFrame(response.data)
+        return pd.DataFrame()
+    except Exception as e:
+        # Fallback dummy data if connection drops
         return pd.DataFrame([
-            {"company": "TA Workspaces HQ", "rating": "⭐ ⭐ ⭐ ⭐ ⭐", "location": "Fort Worth, TX", "comment": "Great place!", "type": "Review"},
-            {"company": "Burger King", "rating": "⭐ ⭐ ⭐", "location": "Hurst, TX", "comment": "Average work balance.", "type": "Review"},
-            {"company": "Bellaire Elementary", "rating": "🎉 Secured!", "location": "Hurst, TX", "comment": "Hired as an assistant! Super excited.", "type": "Hired Info"}
+            {"company": "TA Workspaces HQ", "rating": "⭐ ⭐ ⭐ ⭐ ⭐", "latitude": 32.7555, "longitude": -97.3308, "comment": "Great place!", "type": "Review", "address": "123 Main St, Fort Worth"},
+            {"company": "Burger King", "rating": "⭐ ⭐ ⭐", "latitude": 32.8140, "longitude": -97.1729, "comment": "Average work balance.", "type": "Review", "address": "789 Highway 121, Hurst"}
         ])
 
-def insert_review(company, rating, lat, lon, comment, review_type="Review"):
+def insert_review(company, rating, lat, lon, comment, address, review_type="Review"):
     try:
+        # Ensure these column names perfectly match your Supabase table columns!
         data = {
             "company": company, 
-            "rating": rating, 
-            "lat": lat, 
-            "lon": lon, 
+            "rating": str(rating), 
+            "latitude": float(lat), 
+            "longitude": float(lon), 
             "comment": comment,
+            "address": address,
             "type": review_type
         }
         supabase.table("reviews").insert(data).execute()
         st.success(f"🎉 {review_type} submitted successfully!")
+        # Force rerun so it updates instantly on the screen
+        st.rerun()
     except Exception as e:
         st.error(f"Failed to save to database: {e}")
 
@@ -84,17 +90,22 @@ with st.sidebar:
             if url:
                 st.markdown(f"[👉 Click Here to Complete Payment]({url})")
 
-# Main Content Layout Split
+# Load data first so map and list stay aligned
+df_reviews = fetch_reviews()
+
+# Fixed column initialization (passing 2 splits it properly)
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📍 Location Map")
-    df_reviews = fetch_reviews()
+    st.subheader("📍 DFW Workspace Location Map")
     
-    if not df_reviews.empty and 'lat' in df_reviews.columns and 'lon' in df_reviews.columns:
-        st.map(df_reviews[['lat', 'lon']])
+    # Check for latitude/longitude columns to make sure map doesn't crash
+    if not df_reviews.empty and 'latitude' in df_reviews.columns and 'longitude' in df_reviews.columns:
+        # Map needs a dataframe containing 'latitude' and 'longitude' columns
+        map_df = df_reviews.dropna(subset=['latitude', 'longitude'])
+        st.map(map_df[['latitude', 'longitude']])
     else:
-        st.info("No location points coordinates available to display yet.")
+        st.info("No location points available to display yet.")
 
 with col2:
     # Let the user pick what action they want to do!
@@ -102,12 +113,12 @@ with col2:
     
     with st.form("submission_form", clear_on_submit=True):
         company_name = st.text_input("Company or School Name")
+        target_address = st.text_input("Exact Street Address / Location Specifics")
         
         if action == "📝 Leave a Review":
             score = st.slider("Rating (1-5 Stars)", 1, 5, 5)
-            # Create a pretty star layout text column for formatting
             star_rating = "⭐ " * score
-            user_comment = st.text_area("Review Comment")
+            user_comment = st.text_area("What are your exact concerns or positives about this location?")
             review_type = "Review"
         else:
             st.markdown("### 🥳 Congratulations!")
@@ -115,34 +126,40 @@ with col2:
             user_comment = st.text_area("Tell us about your new job role! (Optional)")
             review_type = "Hired Info"
             
-        st.markdown("**Exact Coordinates**")
+        st.markdown("**Exact Coordinates (For Live Map Drop)**")
+        # Defaulting center near Hurst area coordinates
         latitude = st.number_input("Latitude", value=32.8234, format="%.4f")
         longitude = st.number_input("Longitude", value=-97.1729, format="%.4f")
         
         submitted = st.form_submit_button("Submit Entry")
         if submitted:
-            if company_name.strip() == "":
-                st.warning("Please provide a valid name.")
+            if company_name.strip() == "" or target_address.strip() == "":
+                st.warning("Please provide a valid name and specific address location.")
             else:
-                insert_review(company_name, star_rating, latitude, longitude, user_comment, review_type)
+                insert_review(company_name, star_rating, latitude, longitude, user_comment, target_address, review_type)
 
 # ==========================================
-# 4. RECENT SUBMISSIONS - CLEAN FORMATTING
+# 4. RECENT SUBMISSIONS - SPECIFICS LAYOUT
 # ==========================================
-st.subheader("📊 Recent Workspace Activity")
+st.subheader("📊 Recent Workspace Activity & Location Specifics")
 
 if not df_reviews.empty:
-    # Loop over entries to show them as neat card layouts instead of a bulky raw spreadsheet tracker
     for index, row in df_reviews.iterrows():
-        # Differentiate reviews from success hires visually
+        # Clean defaults if missing
+        comp = row.get('company', 'Unknown Work')
+        addr = row.get('address', 'No specific address listed')
+        comm = row.get('comment', '')
+        rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
+        
         if row.get('type') == 'Hired Info':
-            st.info(f"**🎉 {row['company']}** — *Hired Success Announcement!* \n\n {row['comment']}")
+            st.info(f"**🎉 {comp}** — *{addr}* \n\n**Status:** {rate} \n\n{comm}")
         else:
             st.markdown(f"""
-            #### 🏢 {row['company']} 
-            *Rating: {row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')}*
+            #### 🏢 {comp} 
+            📍 **Specific Location:** `{addr}`
+            *Rating:* {rate}
             
-            > {row['comment']}
+            > {comm}
             ---
             """)
 else:
