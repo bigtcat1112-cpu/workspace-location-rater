@@ -35,6 +35,13 @@ st.markdown("""
             border-radius: 10px;
             padding: 25px;
         }
+
+        /* Make typing inputs a nice bright beige background */
+        input, textarea, [data-baseweb="input"] {
+            background-color: #F5F3EE !important;
+            color: #3A3835 !important;
+            border: 1px solid #CBD1C7 !important;
+        }
         
         /* Clean white box panels for feed reviews */
         .review-card {
@@ -94,14 +101,14 @@ def create_checkout_session():
         return None
 
 def fetch_reviews():
+    # Force clear Streamlit's data cache right before fetching to guarantee immediate view updates
+    st.cache_data.clear()
     try:
-        # Crucial: Using a dynamic database order filter forces Supabase to send a live, uncached feed back
         response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
         if response.data:
             return pd.DataFrame(response.data)
         return pd.DataFrame()
     except Exception as e:
-        # Local mock structural fallback if database connection completely drops
         return pd.DataFrame([
             {
                 "company": "TA Workspaces HQ", 
@@ -127,12 +134,10 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
             "type": review_type,
             "details": details
         }
-        # 1. Send data out to your database live row
         supabase.table("reviews").insert(data).execute()
         st.success(f"🎉 {review_type} submitted successfully!")
         
-        # 2. Add a tiny pause to give the server a millisecond to process, then wipe internal app cache and reload
-        time.sleep(0.4)
+        time.sleep(0.5)
         st.cache_data.clear()
         st.rerun()
     except Exception as e:
