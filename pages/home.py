@@ -90,7 +90,7 @@ with tab3:
         live_reviews = response.data
     except Exception as e:
         st.error("Could not load recent reviews.")
-        live_reviews =
+        live_reviews = []
 
     if live_reviews:
         for rev in live_reviews:
