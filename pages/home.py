@@ -150,7 +150,7 @@ folium.Marker(
     tooltip="Downtown FW Tech Space"
 ).add_to(dfw_map)
 
-st_folium(dfw_map, width=850, height=450, returned_objects=)
+st_folium(dfw_map, width=850, height=450, returned_objects=[])
 st.markdown("---")
 
 # ==========================================
@@ -158,7 +158,7 @@ st.markdown("---")
 # ==========================================
 st.header("📋 Recent Workplace Ratings Feed")
 
-reviews_data =
+reviews_data = []
 if supabase:
     try:
         response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
@@ -252,6 +252,7 @@ with st.form("workspace_review_form", clear_on_submit=True):
             else:
                 st.error("Database connectivity pipeline offline.")
         else:
-st.error("Submission blocked. Please fill out all required fields.")
+            st.error("Submission blocked. Please fill out all required fields.")
+
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. Protected tracking pipelines active. Anti-bot scrapers enabled.")
