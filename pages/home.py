@@ -1,85 +1,61 @@
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
+from supabase import create_client, Client
 
-# ==============================================================================
-# SITE CONTENT & INTERFACE 
-# ==============================================================================
-st.title("TA Workspaces 🏢")
-st.write("Welcome to TA Workspaces! Search, rate, and review workspaces easily.")
+# 1. Initialize Supabase Connection
+@st.cache_resource
+def init_supabase() -> Client:
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
 
-# --- Quick Navigation Links ---
-st.subheader("Quick Links")
-col1, col2 = st.columns(2)
+supabase = init_supabase()
 
-with col1:
-    if st.button("Go to Search Hub"):
-        st.info("You are already on the home hub!")
+st.title("TA Workspaces - DFW Job Rater")
+st.write("Explore exact job locations across DFW and rate how they treat employees!")
 
-with col2:
-    if st.button("Open Staff Portal"):
-        st.switch_page("pages/admin.py")
+# 2. Interactive Map Component
+st.subheader("Workspace Location Map")
 
-# --- Workspace Database & Search Area ---
-st.write("---")
-st.subheader("🔍 Find a Workspace")
+# Center the map around the DFW area
+m = folium.Map(location=[32.7767, -96.7970], zoom_start=10)
 
-# Workspace data sample (with exact coordinates)
-workspaces = [
-    {"name": "Downtown Tech Hub", "location": "Dallas, TX", "rating": "⭐ 4.8", "lat": 32.7885, "lon": -96.8058},
-    {"name": "Cozy Corner Cafe & Desk", "location": "Fort Worth, TX", "rating": "⭐ 4.5", "lat": 32.7555, "lon": -97.3308},
-    {"name": "The Innovation Lab", "location": "Arlington, TX", "rating": "⭐ 4.2", "lat": 32.7301, "lon": -97.1143}
-]
+# Add our existing workspace marker tags
+folium.Marker(
+    [32.8232, -97.1739], 
+    popup="Target - Hurst (Example)", 
+    tooltip="Click for Info"
+).add_to(m)
 
-search_query = st.text_input("Type a city or workspace name to search:")
+# Display the map on the page
+st_folium(m, width=700, height=450)
 
-# Filter workspaces based on search query
-filtered_workspaces = [
-    ws for ws in workspaces 
-    if search_query.lower() in ws["name"].lower() or search_query.lower() in ws["location"].lower()
-]
-
-# --- Real Interactive Map Section ---
-if filtered_workspaces:
-    st.write("### 🗺️ Live Workspace Map")
-    
-    # Create a real map centered around the DFW area
-    m = folium.Map(location=[32.7767, -96.7970], zoom_start=9, control_scale=True)
-    
-    # Add interactive pins for each workspace
-    for ws in filtered_workspaces:
-        folium.Marker(
-            location=[ws["lat"], ws["lon"]],
-            popup=f"<b>{ws['name']}</b><br>{ws['rating']}",
-            tooltip=ws["name"],
-            icon=folium.Icon(color="purple", icon="briefcase", prefix="fa")
-        ).add_to(m)
-    
-    # Render the real map on your Streamlit site
-    st_folium(m, width=700, height=400)
-else:
-    st.warning("No workspaces found matching your search terms.")
-
-# --- Search List Breakdown ---
-st.write("### 📋 Workspace List")
-for ws in filtered_workspaces:
-    with st.container():
-        st.markdown(f"#### {ws['name']}")
-        st.write(f"📍 Location: {ws['location']} | Score: {ws['rating']}")
-        if st.button(f"View Reviews for {ws['name']}", key=ws['name']):
-            st.write("Reviews loading...")
-        st.write("")
-
-# ==============================================================================
-# SECURITY & LEGAL FOOTER
-# ==============================================================================
 st.markdown("---")
-st.markdown(
-    """
-    <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>⚠️ ANTI-SCRAPING SECURITY ACTIVE:</strong> Automated bot tracking is enabled on this domain.<br>
-        &copy; 2026 TA Workspaces. All Rights Reserved. Unauthorized data duplication is strictly prohibited.
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
+
+# 3. Live User Submission Form
+st.subheader("Rate Your Exact Workplace Location")
+st.write("Help others by posting an honest review about your specific job location.")
+
+with st.form("review_form", clear_on_submit=True):
+    workspace_name = st.text_input("Exact Location Name (e.g., Target - Hurst, TX)")
+    rating = st.slider("Rating (1 = Awful, 5 = Amazing!)", 1, 5, 3)
+    comment = st.text_area("Tell us about how they treat employees, hours, managers, etc.")
+    
+    submit_button = st.form_submit_button("Submit Rating")
+
+# Handle database submission
+if submit_button:
+    if workspace_name.strip() == "":
+        st.warning("Please type in a location name before submitting!")
+    else:
+        new_row = {
+            "workspace_name": workspace_name,
+            "rating": rating,
+            "comment": comment
+        }
+        try:
+            supabase.table("workspace_reviews").insert(new_row).execute()
+            st.success(f"Review for '{workspace_name}' successfully added to the live database!")
+        except Exception as e:
+            st.error(f"Could not connect to database: {e}")
