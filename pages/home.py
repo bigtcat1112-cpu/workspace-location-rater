@@ -28,7 +28,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 2. Initialize Supabase Connection
+# 2. Initialize Supabase Connection Safely
 @st.cache_resource
 def init_supabase() -> Client:
     url = st.secrets["SUPABASE_URL"]
@@ -58,20 +58,20 @@ st.title("🚀 TA Workspaces")
 st.markdown("Find and review the best study and workspaces in the DFW Metroplex.")
 st.divider()
 
-# Create two columns
+# Create two columns (Fixed argument to split screen properly)
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 DFW Workspace Locations")
     
+    # Always initialize the map centered on DFW so it cannot disappear!
+    m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
+    
     try:
-        # Fetch live map marker data
+        # Try to grab data from database
         locations_response = supabase.table("workspaces").select("*").execute()
         locations = locations_response.data
 
-        # Fallback DFW map even if database is empty so it never disappears!
-        m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
-        
         if locations:
             for loc in locations:
                 folium.Marker(
@@ -80,16 +80,18 @@ with col1:
                     tooltip=loc["name"]
                 ).add_to(m)
         else:
-            st.info("No workspace locations found yet. Showing base DFW map.")
-            
-        st_folium(m, width=650, height=450, key="dfw_map")
+            st.info("No workspace locations found yet. Showing base map.")
             
     except Exception as e:
-        st.error(f"Could not load the workspace map layout: {e}")
+        # If your Supabase URL gives a 404, show a clean warning instead of crashing the map!
+        st.warning("Database connection offline. Showing offline DFW workspace base map.")
+
+    # Render the map no matter what
+    st_folium(m, width=650, height=450, key="dfw_map")
 
     st.divider()
 
-    # Submit Review Section inside Beige Wrapper
+    # Submit Review Section inside your Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Review")
     with st.form("review_form", clear_on_submit=True):
@@ -108,6 +110,8 @@ with col1:
                     }
                     supabase.table("reviews").insert(new_review).execute()
                     st.success("Thank you! Your review has been submitted.")
+                    
+                    # Force a refresh so it pops up instantly in the feed below
                     st.rerun()
                 except Exception as e:
                     st.error(f"Failed to save your review: {e}")
@@ -116,7 +120,7 @@ with col1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # Stripe Premium Subscription Section inside Beige Wrapper
+    # Stripe Premium Subscription Section inside your Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
