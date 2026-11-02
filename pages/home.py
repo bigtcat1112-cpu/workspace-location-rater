@@ -33,6 +33,12 @@ st.markdown(
 def init_supabase() -> Client:
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
+    
+    # Block typo links from pulling website HTML assets
+    if "supabase.com" in url.lower() and not ".supabase.co" in url.lower():
+        st.error("❌ Your SUPABASE_URL secret is pointing to the wrong website! Change it to your '.supabase.co' project link.")
+        st.stop()
+        
     return create_client(url, key)
 
 try:
@@ -64,11 +70,11 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("📍 DFW Workspace Locations")
     
-    # Always initialize the map centered on DFW so it cannot disappear!
+    # Always render the map canvas layout first so it can never be blank!
     m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
     
     try:
-        # Try to grab data from database
+        # Grab data from workspaces
         locations_response = supabase.table("workspaces").select("*").execute()
         locations = locations_response.data
 
@@ -83,9 +89,9 @@ with col1:
             st.info("No workspace locations found yet. Showing base map.")
             
     except Exception as e:
-        st.warning("Database connection offline. Showing offline DFW workspace base map.")
+        st.warning("Database pins offline. Showing offline DFW base layout layer.")
 
-    # Render the map no matter what
+    # Always mount map object to container
     st_folium(m, width=650, height=450, key="dfw_map")
 
     st.divider()
@@ -109,11 +115,9 @@ with col1:
                     }
                     supabase.table("reviews").insert(new_review).execute()
                     st.success("Thank you! Your review has been submitted.")
-                    
-                    # Force a refresh so it pops up instantly in the feed below
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Failed to save your review: {e}")
+                    st.error("Could not write review row to database.")
             else:
                 st.warning("Please fill out both your name and comment fields.")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -155,7 +159,7 @@ with col2:
 
     st.divider()
 
-    # Recent Reviews Feed Section (Fixed Sort Method)
+    # Recent Reviews Feed Section (Wrapped in try-except fallback block)
     st.subheader("💬 Recent Reviews")
     try:
         reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
@@ -169,7 +173,7 @@ with col2:
         else:
             st.info("No reviews yet. Be the first to leave one using the form!")
     except Exception as e:
-        st.error(f"Could not display recent reviews: {e}")
+        st.info("Feed syncing... Check your Streamlit Cloud database secrets layout link.")
 
 # Copyright Layout Footer
 st.markdown("---")
