@@ -159,8 +159,9 @@ with col2:
     # Recent Reviews Feed Section
     st.subheader("💬 Recent Reviews")
     try:
-        reviews_response = supabase.table("reviews").select("*").order("created_at", descending=True).execute()
-        recent_reviews = reviews_response.data
+    reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
+
+      recent_reviews = reviews_response.data
 
         if recent_reviews:
             for rev in recent_reviews:
