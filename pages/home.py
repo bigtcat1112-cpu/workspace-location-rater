@@ -169,11 +169,12 @@ with col2:
     # 1. Mount session cache updates first for instant feedback
     for lr in st.session_state["local_reviews"]:
         all_display_reviews.append({
-            "workspace_name": lr["workspace_name"],
-            "work_quality": lr["work_quality"],
-            "amenities": lr["amenities"],
-            "got_job": lr["got_job"]
+            "workspace_name": lr.get("workspace_name") or lr.get("workspace") or "Workspace",
+            "work_quality": lr.get("work_quality") or lr.get("rating") or 5,
+            "amenities": lr.get("amenities") or lr.get("comment") or "",
+            "got_job": lr.get("got_job") or False
         })
+
         
     # 2. Extract active records out from database query schema rows
     try:
