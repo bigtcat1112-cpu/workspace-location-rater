@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom Beige Styling Theme Injection
+# Custom Beige Styling Theme
 st.markdown(
     """
     <style>
@@ -49,7 +49,7 @@ def track_visitor():
     try:
         supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
     except:
-        pass  # Silent fail so it doesn't break the layout
+        pass
 
 track_visitor()
 
@@ -58,40 +58,38 @@ st.title("🚀 TA Workspaces")
 st.markdown("Find and review the best study and workspaces in the DFW Metroplex.")
 st.divider()
 
-# Create two columns: Left for Map & Actions, Right for Reviews & Subscriptions
-col1, col2 = st.columns([1.1, 1])
+# Create two columns
+col1, col2 = st.columns()
 
 with col1:
     st.subheader("📍 DFW Workspace Locations")
     
     try:
-        # Fetch live map marker data from Supabase
+        # Fetch live map marker data
         locations_response = supabase.table("workspaces").select("*").execute()
         locations = locations_response.data
 
+        # Fallback DFW map even if database is empty so it never disappears!
+        m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
+        
         if locations:
-            # Center the map around the DFW center point (Hurst/Bedford area)
-            m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
-            
-            # Drop interactive markers onto the map layout
             for loc in locations:
                 folium.Marker(
                     location=[loc["latitude"], loc["longitude"]],
                     popup=f"<b>{loc['name']}</b><br>{loc['address']}",
                     tooltip=loc["name"]
                 ).add_to(m)
-            
-            # Display map object inside Streamlit layout
-            st_folium(m, width=650, height=450, key="dfw_map")
         else:
-            st.info("No workspace locations found in the database. Add some via the admin panel!")
+            st.info("No workspace locations found yet. Showing base DFW map.")
+            
+        st_folium(m, width=650, height=450, key="dfw_map")
             
     except Exception as e:
         st.error(f"Could not load the workspace map layout: {e}")
 
     st.divider()
 
-    # Submit Review Section inside a Styled Beige Wrapper
+    # Submit Review Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Review")
     with st.form("review_form", clear_on_submit=True):
@@ -103,19 +101,14 @@ with col1:
         if submit_button:
             if user_name and comment:
                 try:
-                    # Insert the new review row into Supabase
                     new_review = {
                         "name": user_name,
                         "rating": rating,
                         "comment": comment
                     }
                     supabase.table("reviews").insert(new_review).execute()
-                    
                     st.success("Thank you! Your review has been submitted.")
-                    
-                    # Force Streamlit to instantly rerun and pull the fresh review feed
                     st.rerun()
-                    
                 except Exception as e:
                     st.error(f"Failed to save your review: {e}")
             else:
@@ -123,7 +116,7 @@ with col1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # Stripe Premium Subscription Section inside a Styled Beige Wrapper
+    # Stripe Premium Subscription Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
@@ -131,7 +124,6 @@ with col2:
     
     if st.button("Subscribe Now", type="primary"):
         try:
-            # Create a real Stripe Checkout Session
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -140,7 +132,7 @@ with col2:
                         'product_data': {
                             'name': 'TA Workspaces Premium Subscription',
                         },
-                        'unit_amount': 2000, # $20.00 in cents
+                        'unit_amount': 2000,
                         'recurring': {'interval': 'month'},
                     },
                     'quantity': 1,
@@ -149,11 +141,11 @@ with col2:
                 success_url='https://streamlit.app',
                 cancel_url='https://streamlit.app',
             )
-            # Direct link to checkout
             st.link_button("Complete Payment on Stripe", session.url)
-            
-            # Log subscription attempt event
-            supabase.table("analytics").insert({"page": "home", "type": "checkout_click"}).execute()
+            try:
+                supabase.table("analytics").insert({"page": "home", "type": "checkout_click"}).execute()
+            except:
+                pass
         except Exception as e:
             st.error(f"Stripe Checkout integration error: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -163,7 +155,6 @@ with col2:
     # Recent Reviews Feed Section
     st.subheader("💬 Recent Reviews")
     try:
-        # Fetch reviews directly sorted by newest first
         reviews_response = supabase.table("reviews").select("*").order("created_at", descending=True).execute()
         recent_reviews = reviews_response.data
 
@@ -177,6 +168,6 @@ with col2:
     except Exception as e:
         st.error(f"Could not display recent reviews: {e}")
 
-# 5. Copyright Legal Warning Footer Layout
+# Copyright Legal Warning Footer Layout
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
