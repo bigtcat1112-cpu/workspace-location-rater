@@ -242,4 +242,4 @@ if not df_reviews.empty:
             </div>
             """, unsafe_allow_html=True)
 else:
-st.info("No recent ratings found.")
+    st.info("No recent ratings found.")
