@@ -2,31 +2,60 @@ import streamlit as st
 import stripe
 from supabase import create_client, Client
 import pandas as pd
+import time
 
 # ==========================================
 # 1. INITIALIZE APIS & CONFIGURATION
 # ==========================================
 st.set_page_config(page_title="TA Workspaces", page_icon="🏢", layout="wide")
 
-# Custom injection to brighten background layouts using soft greys and warm beiges
+# Custom injection to brighten background layouts and force dark beige-grey text contrast
 st.markdown("""
     <style>
+        /* Base page styling */
         .stApp {
             background-color: #F7F5F0;  /* Soft Warm Bright Beige */
+            color: #3A3835 !important;  /* High-Contrast Dark Beige-Grey text */
         }
-        .sidebar .sidebar-content {
-            background-color: #EDEDED;  /* Clean Minimal Light Grey */
+        
+        /* Force text colors inside markdown blocks */
+        h1, h2, h3, h4, h5, h6, p, label, span, div {
+            color: #3A3835 !important;
         }
+        
+        /* Clean Minimal Light Grey Sidebar */
+        [data-testid="stSidebar"] {
+            background-color: #EDEDED !important;
+        }
+        
+        /* Submission Form Container Box */
         div[data-testid="stForm"] {
-            background-color: #FFFFFF;
-            border: 1px solid #E0DCD3;
+            background-color: #FFFFFF !important;
+            border: 1px solid #E0DCD3 !important;
             border-radius: 10px;
             padding: 25px;
         }
-        div.stMetric {
-            background-color: #FAFAFA;
-            padding: 10px;
-            border-radius: 5px;
+        
+        /* Clean white box panels for feed reviews */
+        .review-card {
+            background-color: #FFFFFF !important; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border-left: 5px solid #CBD1C7; 
+            margin-bottom: 15px;
+            box-shadow: 0px 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        /* Specifics breakdown pill box background */
+        .specs-box {
+            background-color: #F5F3EE !important; 
+            padding: 8px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            font-size: 0.9em; 
+            color: #4A4844 !important; 
+            margin: 10px 0;
+            border: 1px solid #E6E2DA;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -66,16 +95,15 @@ def create_checkout_session():
 
 def fetch_reviews():
     try:
-        # Pull live records from your Supabase table
-        response = supabase.table("reviews").select("*").order("id", desc=True).execute()
+        # Crucial: Using a dynamic database order filter forces Supabase to send a live, uncached feed back
+        response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
         if response.data:
             return pd.DataFrame(response.data)
         return pd.DataFrame()
     except Exception as e:
-        # Local mock structural fallback if database connection drops
+        # Local mock structural fallback if database connection completely drops
         return pd.DataFrame([
             {
-                "id": 1,
                 "company": "TA Workspaces HQ", 
                 "rating": "⭐ ⭐ ⭐ ⭐ ⭐", 
                 "latitude": 32.7555, 
@@ -89,7 +117,6 @@ def fetch_reviews():
 
 def insert_review(company, rating, lat, lon, comment, address, review_type="Review", details=""):
     try:
-        # Ensure column map variables align with data rows completely
         data = {
             "company": company, 
             "rating": str(rating), 
@@ -100,11 +127,12 @@ def insert_review(company, rating, lat, lon, comment, address, review_type="Revi
             "type": review_type,
             "details": details
         }
-        # Step 1: Write to table
+        # 1. Send data out to your database live row
         supabase.table("reviews").insert(data).execute()
         st.success(f"🎉 {review_type} submitted successfully!")
         
-        # Step 2: Force clean cache session update states before view render loops
+        # 2. Add a tiny pause to give the server a millisecond to process, then wipe internal app cache and reload
+        time.sleep(0.4)
         st.cache_data.clear()
         st.rerun()
     except Exception as e:
@@ -132,7 +160,7 @@ with st.sidebar:
     else:
         st.info("You're using the standard free dashboard tiers. Share your hiring status toggle on the right anytime!")
 
-# Load fresh matching datasets
+# Pull latest fresh dataset matching records
 df_reviews = fetch_reviews()
 
 col1, col2 = st.columns(2)
@@ -199,20 +227,18 @@ if not df_reviews.empty:
         rate = row.get('rating', '⭐ ⭐ ⭐ ⭐ ⭐')
         specs = row.get('details', '')
         
-        # Visually clean custom panels utilizing background color structures
         if row.get('type') == 'Hired Info':
             st.info(f"**🎉 {comp}** — *{addr}* \n\n**Status:** {rate} \n\n{comm}")
         else:
             st.markdown(f"""
-            <div style="background-color: #FFFFFF; padding: 15px; border-radius: 8px; border-left: 5px solid #D1C7BD; margin-bottom: 15px;">
-                <h4 style="margin: 0; color: #333333;">🏢 {comp}</h4>
-                <p style="margin: 5px 0; color: #666666;">📍 <b>Specific Location:</b> <code>{addr}</code></p>
-                <p style="margin: 5px 0; color: #FFB400;"><b>Average Rating:</b> {rate}</p>
-                <div style="background-color: #F5F5F5; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; color: #555555; margin: 10px 0;">
+            <div class="review-card">
+                <h4 style="margin: 0;">🏢 {comp}</h4>
+                <p style="margin: 5px 0;">📍 <b>Specific Location:</b> <code>{addr}</code></p>
+                <p style="margin: 5px 0; color: #FFB400 !important;"><b>Average Rating:</b> {rate}</p>
+                <div class="specs-box">
                     {specs}
                 </div>
-                <p style="margin: 10px 0 0 0; font-style: italic; color: #444444;">> {comm}</p>
+                <p style="margin: 10px 0 0 0; font-style: italic;">> {comm}</p>
             </div>
             """, unsafe_allow_html=True)
 else:
-    st.info("No recent ratings found.")
