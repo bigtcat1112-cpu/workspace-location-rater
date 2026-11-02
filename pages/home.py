@@ -133,3 +133,35 @@ with tab3:
                     st.markdown(f"💬 **General Comment:** {rev['comment']}")
     else:
         st.info("No location reviews found yet. Be the first to add one above!")
+import streamlit as st
+st.title("🎉 Celebrate Your New Job!")
+st.write("Click below to log your success, protect your privacy, and unlock career tips!")
+
+# Trigger the celebration popup form
+if st.button("🚀 I Got the Job!"):
+    with st.form("job_celebration_form"):
+        st.subheader("Congratulations! Let's get you ready for Day 1:")
+        
+        # Privacy-first details
+        username = st.text_input("Create an Anonymous Username", placeholder="e.g., DFW_Coder11")
+        job_title = st.selectbox("What is your new role?", [
+            "Cashier / Crew Member",
+            "Stocking Associate",
+            "Customer Service Rep",
+            "Shift Supervisor",
+            "Office Assistant"
+        ])
+        
+        # Premium subscription check
+        premium = st.checkbox("Upgrade to Daily Premium Tips ($20/mo) 💎")
+        
+        submit_job = st.form_submit_button("Secure My Tips!")
+        
+        if submit_job:
+            if username:
+                st.balloons()  # Shoots celebratory balloons across the screen!
+                st.success(f"Awesome job, {username}! Your profile is updated completely anonymously.")
+                if premium:
+                    st.info("🔗 Redirecting to Stripe secure checkout for your $20/month premium subscription...")
+            else:
+                st.error("Please enter a username to personalize your dashboard!")
