@@ -1,9 +1,4 @@
 import streamlit as st
-import streamlit as st
-import folium
-from streamlit_folium import st_folium
-from supabase import create_client, Client
-import stripe
 import folium
 from streamlit_folium import st_folium
 from supabase import create_client, Client
@@ -16,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom Beige Theme Styling Injection
+# Custom Beige Styling Theme
 st.markdown(
     """
     <style>
@@ -37,13 +32,13 @@ st.markdown(
 if "local_reviews" not in st.session_state:
     st.session_state["local_reviews"] = []
 
-# 2. Initialize Supabase Connection
+# 2. Initialize Supabase Connection Safely
 @st.cache_resource
 def init_supabase() -> Client:
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
     if "supabase.com" in url.lower() and not ".supabase.co" in url.lower():
-        st.error("❌ SUPABASE_URL secret is pointing to the wrong website domain! Update it to your project link.")
+        st.error("❌ Your SUPABASE_URL secret is pointing to the wrong website! Change it to your '.supabase.co' project link.")
         st.stop()
     return create_client(url, key)
 
@@ -56,17 +51,21 @@ except Exception as e:
 # Initialize Stripe
 stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
 
-# 3. Track Metrics
-try:
-    supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
-except:
-    pass
+# 3. Track Visitor Metrics (Supabase Analytics)
+def track_visitor():
+    try:
+        supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
+    except:
+        pass
 
-# 4. App Layout Main Panels
+track_visitor()
+
+# 4. App Header Layout
 st.title("🚀 TA Workspaces")
 st.markdown("Find and review the best study and workspaces in the DFW Metroplex.")
 st.divider()
 
+# Create two columns (Split screen layout)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -89,48 +88,48 @@ with col1:
     st_folium(m, width=650, height=450, key="dfw_map")
     st.divider()
 
-    # ✍️ Submit Review Form Container (NAME REMOVED, SPECIFICS ENFORCED)
+    # ✍️ Submit Review Form (NAME REMOVED, SPECIFICS FULLY SEPARATED AND RESTORED)
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Workspace Review")
     with st.form("review_form", clear_on_submit=True):
         workspace_name = st.text_input("Workspace Name (e.g., Bedford Public Library, Cafe)")
-        rating = st.slider("Work Quality Rating", 1, 5, 5)
-        comment = st.text_area("Amenities & Comments (WiFi speed, seating, noise level)")
+        work_quality = st.slider("Work Quality Rating", 1, 5, 5)
+        amenities = st.text_area("Amenities & Comments (WiFi speed, seating, noise level)")
         got_job = st.checkbox("I Got the Job! 🎉")
         
         submit_button = st.form_submit_button("Submit Review")
 
         if submit_button:
-            if workspace_name and comment:
-                # Compile parameters into historical data snapshot
+            if workspace_name and amenities:
+                # Compile parameters into our review dictionary object
                 new_review = {
-                    "workspace": workspace_name,
-                    "rating": rating,
-                    "comment": comment,
+                    "workspace_name": workspace_name,
+                    "work_quality": work_quality,
+                    "amenities": amenities,
                     "got_job": got_job
                 }
                 
                 # Push immediately to local stack layer for fast rendering response
                 st.session_state["local_reviews"].insert(0, new_review)
                 
-                # Push back upstream payload package to backend database columns
+                # Push back upstream payload package to matching database columns
                 try:
-                    formatted_comment = f"{comment} {'(Got the Job! 🎉)' if got_job else ''}"
                     supabase.table("reviews").insert({
-                        "name": workspace_name,  # Mapping name target column directly to specific property label
-                        "rating": rating,
-                        "comment": formatted_comment
+                        "workspace_name": workspace_name,
+                        "work_quality": work_quality,
+                        "amenities": amenities,
+                        "got_job": got_job
                     }).execute()
                 except Exception as e:
                     pass
                 
                 st.rerun()
             else:
-                st.warning("Please specify a workspace location name and fill out your review text.")
+                st.warning("Please fill out both the workspace name and amenities text fields.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # ⭐ Stripe Pass Premium Option Container Block
+    # Stripe Premium Subscription Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
@@ -163,16 +162,16 @@ with col2:
     st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
 
-    # 💬 Consolidated Specific Reviews Feed Presentation
+    # 💬 Consolidated Feed Section displaying your explicit specifics
     st.subheader("💬 Recent Reviews")
     all_display_reviews = []
     
-    # 1. Mount session cache updates first for zero lag time feedback
+    # 1. Mount session cache updates first for instant feedback
     for lr in st.session_state["local_reviews"]:
         all_display_reviews.append({
-            "workspace": lr["workspace"],
-            "rating": lr["rating"],
-            "comment": lr["comment"],
+            "workspace_name": lr["workspace_name"],
+            "work_quality": lr["work_quality"],
+            "amenities": lr["amenities"],
             "got_job": lr["got_job"]
         })
         
@@ -182,26 +181,34 @@ with col2:
         cloud_reviews = reviews_response.data
         if cloud_reviews:
             for cr in cloud_reviews:
-                if not any(r["workspace"].lower() == cr["name"].lower() and cr["comment"] in r["comment"] for r in all_display_reviews):
+                # Check for legacy table structure fallback or new column layout
+                w_name = cr.get("workspace_name") or cr.get("name", "Workspace Location")
+                w_quality = cr.get("work_quality") or cr.get("rating", 5)
+                w_amenities = cr.get("amenities") or cr.get("comment", "")
+                w_job = cr.get("got_job") or ("🎉" in w_amenities or "Job!" in w_amenities)
+
+                # Avoid adding duplicates if already captured by local fast-push
+                if not any(r["workspace_name"].lower() == w_name.lower() and w_amenities in r["amenities"] for r in all_display_reviews):
                     all_display_reviews.append({
-                        "workspace": cr["name"],
-                        "rating": cr["rating"],
-                        "comment": cr["comment"],
-                        "got_job": "🎉" in cr["comment"]
+                        "workspace_name": w_name,
+                        "work_quality": w_quality,
+                        "amenities": w_amenities,
+                        "got_job": w_job
                     })
     except:
         pass
 
-    # Print out clean list blocks item elements
+    # Print out clean list blocks displaying all your custom parameters explicitly
     if all_display_reviews:
         for rev in all_display_reviews:
             job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
-            st.markdown(f"**Workspace:** {rev['workspace']} — {'⭐' * rev['rating']}{job_badge}")
-            st.caption(f"\"{rev['comment']}\"")
+            st.markdown(f"### 🏢 {rev['workspace_name']}")
+            st.markdown(f"**Rating:** {'⭐' * rev['work_quality']}{job_badge}")
+            st.caption(f"\"{rev['amenities']}\"")
             st.divider()
     else:
         st.info("No reviews logged. Be the first to catalog a location profile item!")
 
-# Copyright Footer Section Layout
+# Copyright Layout Footer
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
