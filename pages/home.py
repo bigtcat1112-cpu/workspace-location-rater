@@ -240,14 +240,13 @@ with col2:
             # Displaying the 5 sub-metrics break-down
             st.markdown(
                 f"""
-* 👔 Management: {'⭐' * rev['rate_management']}
-* 🏢 Environment: {'⭐' * rev['rate_environment']}
-* 👥 Co-workers: {'⭐' * rev['rate_coworkers']}
-* 📅 Flexibility: {'⭐' * rev['rate_schedule']}
-* 💰 Pay/Tips: {'⭐' * rev['rate_pay']}
+* 👔 **Management:** {'⭐' * rev['rate_management']}
+* 🏢 **Environment:** {'⭐' * rev['rate_environment']}
+• 👥 Co-workers: {'⭐' * rev['rate_coworkers']}
+• 📅 Flexibility: {'⭐' * rev['rate_schedule']}
+• 💰 Pay/Tips: {'⭐' * rev['rate_pay']}
 """
-)
-if rev['good_things']:
+)if rev['good_things']:
 st.markdown(f"👍 Good Things:\n{rev['good_things']}")
 if rev['red_flags']:
 st.markdown(f"🚩 Red Flags:\n{rev['red_flags']}")
