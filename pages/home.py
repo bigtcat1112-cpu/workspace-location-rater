@@ -1,5 +1,20 @@
-```python import streamlit as st import streamlit.components.v1 as components
-# Copy and paste this block exactly: ga_code = """
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Google Analytics Tracking Code
+ga_code = """
+<!-- Google tag (gtag.js) -->
+<script async src="https://googletagmanager.com"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-B2C0QPH0XL');
+</script>
+"""
+
+# Inject the tracking script invisibly into your page
+components.html(ga_code, height=0, width=0)
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
