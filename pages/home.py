@@ -220,39 +220,25 @@ with col2:
                         "exact_location": c_loc,
                         "rate_management": cr.get("rate_management") or cr.get("rating") or 5,
                         "rate_environment": cr.get("rate_environment") or cr.get("rating") or 5,
-                        "rate_coworkers": cr.get("rate_coworkers") or cr.get("rating") or 5,
-                        "rate_schedule": cr.get("rate_schedule") or cr.get("rating") or 5,
-                        "rate_pay": cr.get("rate_pay") or cr.get("rating") or 5,
-                        "good_things": cr.get("good_things") or cr.get("comment") or "",
-                        "red_flags": cr.get("red_flags") or "",
-                        "got_job": cr.get("got_job") or ("🎉" in (cr.get("comment") or ""))
-                    })
-    except:
-        pass
-
-    # Print out clean list cards displaying all 5 sub-ratings
-    if all_display_reviews:
-        for rev in all_display_reviews:
-            job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
-            st.markdown(f"### 🏢 Company Name: {rev['company_name']}")
-            st.caption(f"📍 Location: {rev['exact_location']}{job_badge}")
-            
-            # Displaying the 5 sub-metrics break-down
+                                    # Displaying the 5 sub-metrics break-down
             st.markdown(
                 f"""
-                * 👔 **Management:** {'⭐' * rev['rate_management']}
-                * 🏢 **Environment:** {'⭐' * rev['rate_environment']}
-                * 👥 Co-workers: {'⭐' * rev['rate_coworkers']}
-                * 📅 Flexibility: {'⭐' * rev['rate_schedule']}
-                * 💰 Pay/Tips: {'⭐' * rev['rate_pay']}
-               """
-        ) 
-      if rev['good_things']:
-      st.markdown(f"👍 Good Things:\n{rev['good_things']}")
-           if rev['red_flags']:
-                st.markdown(f"🚩 Red Flags:\n{rev['red_flags']}")
-         st.divider()
-                          else:
+* 👔 **Management:** {'⭐' * rev['rate_management']}
+* 🏢 **Environment:** {'⭐' * rev['rate_environment']}
+* 👥 **Co-workers:** {'⭐' * rev['rate_coworkers']}
+* 📅 **Flexibility:** {'⭐' * rev['rate_schedule']}
+* 💰 **Pay/Tips:** {'⭐' * rev['rate_pay']}
+                """
+            )
+            
+            if rev['good_things']:
+                st.markdown(f"**👍 Good Things:**\n{rev['good_things']}")
+            if rev['red_flags']:
+                st.markdown(f"**🚩 Red Flags:**\n{rev['red_flags']}")
+            st.divider()
+    else:
         st.info("No detailed metrics logged yet. Submit a form to start the feed!")
-     st.markdown("---")
+
+# Copyright Layout Footer
+st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
