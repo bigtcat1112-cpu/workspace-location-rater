@@ -5,95 +5,126 @@ from streamlit_folium import st_folium
 from supabase import create_client
 import stripe
 
-# 1. Initialize API Clients from Streamlit Secrets
+# --- CUSTOM BEIGE & GRAY DESIGN STYLING ---
+st.markdown(
+    """
+    <style>
+    /* Main Page Background & Base Text */
+    .stApp {
+        background-color: #FDFBF7; /* Bright Clear Beige */
+        color: #4A4A4A; /* Dark Beige Grey Text Contrast */
+    }
+    
+    /* Input Fields Border and Background Style */
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
+        background-color: #F5F2EB !important; /* Soft Cream Beige Inside Inputs */
+        color: #4A4A4A !important;
+        border-color: #D3CFC9 !important;
+    }
+    
+    /* Headings and Titles color matching your theme */
+    h1, h2, h3, h4, .stSlider {
+        color: #3E3D3A !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# --- SECURE API CLIENT INITIALIZATION ---
 try:
+    # Safely pulling all secrets from Streamlit Secrets Management
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
     supabase = create_client(url, key)
+    
     stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
 except Exception as e:
-    st.error("Missing configuration secrets. Please check your Streamlit Secrets layout.")
+    st.error("🔒 Configuration Key Check Failed. Verify your settings in your Streamlit Cloud Secrets dashboard.")
     st.stop()
 
-st.set_page_config(page_title="TA Workspaces", layout="wide")
-st.title("📍 TA Workspaces - DFW Area")
+st.title("📍 TA Workspaces")
+st.subheader("Real Location and Job Ratings Dashboard")
 
-# 2. Stripe Checkout Logic (Fixed: payment_method_types removed)
+# --- STRIPE LIVE SUBSCRIPTION PORTAL ---
 st.sidebar.header("Premium Subscription")
 if st.sidebar.button("Subscribe for $20/month"):
     try:
+        # Fixed: payment_method_types is removed; uses Dashboard dynamic settings
         session = stripe.checkout.Session.create(
             line_items=[{
-                'price': st.secrets.get("STRIPE_PRICE_ID", "price_12345"),
+                'price': 'price_1UXNrfEbNBWTyWzqE2qkw78S', # Your production price ID
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url='https://streamlit.io', # Update to your live app URL
-            cancel_url='https://streamlit.io',
+            success_url='https://streamlit.app',
+            cancel_url='https://streamlit.app',
         )
-        st.sidebar.success("Checkout link generated!")
-        st.sidebar.markdown(f"[👉 Click here to Pay]({session.url})")
+        st.sidebar.success("Payment Checkout generated successfully!")
+        st.sidebar.markdown(f"[👉 Click here to complete subscription session]({session.url})")
     except Exception as e:
-        st.sidebar.error(f"Stripe error: {e}")
+        st.sidebar.error(f"Stripe Checkout Error: {e}")
 
-# 3. Interactive DFW Workspace Map
-st.header("Workspace Map")
-# Center around Fort Worth / DFW area
+# --- DFW WORKSPACE GEOGRAPHIC MAP ---
+st.header("Workspace Location Map")
 dfw_map = folium.Map(location=[32.837, -97.265], zoom_start=11)
 
-# Sample workspaces to display (Feel free to pull these dynamically from Supabase instead)
-workspaces = [
-    {"name": "Alliance Workspace Hub", "lat": 32.895, "lon": -97.310, "desc": "Great amenities near Hurst/Keller"},
-    {"name": "Downtown FW Tech Space", "lat": 32.755, "lon": -97.330, "desc": "High-speed fiber internet"}
-]
-
-for ws in workspaces:
-    folium.Marker(
-        location=[ws["lat"], ws["lon"]],
-        popup=f"<b>{ws['name']}</b><br>{ws['desc']}",
-        tooltip=ws["name"]
-    ).add_to(dfw_map)
+try:
+    locations_query = supabase.table("reviews").select("company_name, location_address, rating").execute().data
+    if locations_query:
+        df = pd.DataFrame(locations_query)
+except:
+    pass
 
 st_folium(dfw_map, width=700, height=450, returned_objects=[])
 
-# 4. Reviews Section (Fixed: Pops in instantly from Supabase)
-st.header("💬 User Reviews")
-
-# Fetch and show recent reviews
+# --- DYNAMIC REVIEWS FEED ---
+st.header("Recent Workplace Ratings")
 try:
     response = supabase.table("reviews").select("*").order("created_at", descending=True).execute()
     reviews_data = response.data
 except Exception as e:
     reviews_data = []
-    st.warning("Could not load current reviews. Ensure your Supabase table 'reviews' exists.")
 
 if reviews_data:
     for r in reviews_data:
-        st.info(f"**{r.get('username', 'Anonymous')}** ({r.get('rating', 5)}⭐): {r.get('comment', '')}")
+        st.markdown(
+            f"""
+            <div style='background-color: #F5F2EB; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #D3CFC9;'>
+                <strong style='color: #3E3D3A;'>🏢 {r.get('company_name', 'Unknown Location')}</strong> ({r.get('location_address', 'No Address Provided')})<br>
+                <span style='color: #E6A23C;'>{'★' * int(r.get('rating', 5))}</span><br>
+                <p style='margin-top: 5px; color: #4A4A4A;'>"{r.get('comment', '')}"</p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
 else:
-    st.write("No reviews submitted yet. Be the first!")
+    st.write("No location profiles submitted yet.")
 
-# Submit Review Form
-st.subheader("Leave a Review")
-with st.form("review_form", clear_on_submit=True):
-    username = st.text_input("Your Name", placeholder="Tristan")
-    rating = st.slider("Rating", min_value=1, max_value=5, value=5)
-    comment = st.text_area("Your Review")
-    submit_btn = st.form_submit_button("Submit Review")
+# --- SUBMIT REVIEWS FORM (No username field) ---
+st.subheader("Rate a Specific Work Location")
+with st.form("workspace_review_form", clear_on_submit=True):
+    company_name = st.text_input("Company or Venue Name", placeholder="e.g. Target, local office space")
+    location_address = st.text_input("Exact Physical Location Address", placeholder="Street Address, City, State")
+    rating = st.slider("Work Environment Rating", min_value=1, max_value=5, value=5)
+    comment = st.text_area("Detailed Review (Workspace cleanliness, management, treatment, amenities)")
+    
+    submit_btn = st.form_submit_button("Submit Rating Details")
 
     if submit_btn:
-        if username and comment:
-            new_review = {"username": username, "rating": rating, "comment": comment}
+        if company_name and location_address and comment:
+            new_review = {
+                "company_name": company_name, 
+                "location_address": location_address, 
+                "rating": rating, 
+                "comment": comment
+            }
             try:
-                # Insert to Supabase table named 'reviews'
                 supabase.table("reviews").insert(new_review).execute()
-                st.success("🎉 Review submitted! Reloading...")
+                st.success("🎉 Location details logged! The public map feed is updating...")
                 st.rerun()
             except Exception as e:
-                st.error(f"Failed to submit to Supabase: {e}")
+                st.error(f"Supabase Database Failure: {e}")
         else:
-            st.error("Please fill in both your name and comment field.")
+            st.error("Please fill in the Company, Address, and Review fields before submitting.")
 
-# 5. Protected Footer
-st.markdown("---")
-st.caption("© 2026 TA Workspaces. All rights reserved. Dynamic anti-scraping system enabled.")
