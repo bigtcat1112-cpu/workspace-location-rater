@@ -1,5 +1,9 @@
 import streamlit as st
-from map_utils import render_workspace_map # Safe fallback map container pattern
+import streamlit as st
+import folium
+from streamlit_folium import st_folium
+from supabase import create_client, Client
+import stripe
 import folium
 from streamlit_folium import st_folium
 from supabase import create_client, Client
