@@ -154,7 +154,6 @@ with col1:
             else:
                 st.warning("Please fill out both the Company Name and Exact Location fields.")
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col2:
     # Stripe Premium Subscription Section inside Beige Wrapper
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
@@ -220,7 +219,24 @@ with col2:
                         "exact_location": c_loc,
                         "rate_management": cr.get("rate_management") or cr.get("rating") or 5,
                         "rate_environment": cr.get("rate_environment") or cr.get("rating") or 5,
-                                    # Displaying the 5 sub-metrics break-down
+                        "rate_coworkers": cr.get("rate_coworkers") or cr.get("rating") or 5,
+                        "rate_schedule": cr.get("rate_schedule") or cr.get("rating") or 5,
+                        "rate_pay": cr.get("rate_pay") or cr.get("rating") or 5,
+                        "good_things": cr.get("good_things") or cr.get("comment") or "",
+                        "red_flags": cr.get("red_flags") or "",
+                        "got_job": cr.get("got_job") or ("🎉" in (cr.get("comment") or ""))
+                    })
+    except:
+        pass
+
+    # Print out clean list cards displaying all 5 sub-ratings
+    if all_display_reviews:
+        for rev in all_display_reviews:
+            job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
+            st.markdown(f"### 🏢 Company Name: {rev['company_name']}")
+            st.caption(f"📍 Location: {rev['exact_location']}{job_badge}")
+            
+            # Displaying the 5 sub-metrics break-down
             st.markdown(
                 f"""
 * 👔 **Management:** {'⭐' * rev['rate_management']}
