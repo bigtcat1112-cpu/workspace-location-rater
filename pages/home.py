@@ -59,7 +59,7 @@ st.markdown("Find and review the best study and workspaces in the DFW Metroplex.
 st.divider()
 
 # Create two columns
-col1, col2 = st.columns()
+col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 DFW Workspace Locations")
