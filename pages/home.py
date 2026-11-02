@@ -5,26 +5,31 @@ from streamlit_folium import st_folium
 from supabase import create_client
 import stripe
 
-# --- CUSTOM BEIGE & GRAY DESIGN STYLING ---
+# --- RESTORED CUSTOM DARK THEME (Dark Beige Grey with Brighter Accents) ---
 st.markdown(
     """
     <style>
     /* Main Page Background & Base Text */
     .stApp {
-        background-color: #FDFBF7; /* Bright Clear Beige */
-        color: #4A4A4A; /* Dark Beige Grey Text Contrast */
+        background-color: #3E3D3A; /* Dark Beige Grey Background */
+        color: #FDFBF7; /* Bright Clear Beige Text */
     }
     
-    /* Input Fields Border and Background Style */
+    /* Input Fields Background Style */
     div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-        background-color: #F5F2EB !important; /* Soft Cream Beige Inside Inputs */
-        color: #4A4A4A !important;
+        background-color: #FDFBF7 !important; /* Brighter Contrast Inside Inputs */
+        color: #3E3D3A !important;
         border-color: #D3CFC9 !important;
     }
     
-    /* Headings and Titles color matching your theme */
-    h1, h2, h3, h4, .stSlider {
-        color: #3E3D3A !important;
+    /* Side Bar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #2E2D2A !important;
+    }
+    
+    /* Headings and Labels */
+    h1, h2, h3, h4, label, .stSlider {
+        color: #FDFBF7 !important;
     }
     </style>
     """,
@@ -33,11 +38,9 @@ st.markdown(
 
 # --- SECURE API CLIENT INITIALIZATION ---
 try:
-    # Safely pulling all secrets from Streamlit Secrets Management
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
     supabase = create_client(url, key)
-    
     stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
 except Exception as e:
     st.error("🔒 Configuration Key Check Failed. Verify your settings in your Streamlit Cloud Secrets dashboard.")
@@ -50,10 +53,9 @@ st.subheader("Real Location and Job Ratings Dashboard")
 st.sidebar.header("Premium Subscription")
 if st.sidebar.button("Subscribe for $20/month"):
     try:
-        # Fixed: payment_method_types is removed; uses Dashboard dynamic settings
         session = stripe.checkout.Session.create(
             line_items=[{
-                'price': 'price_1UXNrfEbNBWTyWzqE2qkw78S', # Your production price ID
+                'price': 'price_1UXNrfEbNBWTyWzqE2qkw78S',
                 'quantity': 1,
             }],
             mode='subscription',
@@ -70,9 +72,7 @@ st.header("Workspace Location Map")
 dfw_map = folium.Map(location=[32.837, -97.265], zoom_start=11)
 
 try:
-    locations_query = supabase.table("reviews").select("company_name, location_address, rating").execute().data
-    if locations_query:
-        df = pd.DataFrame(locations_query)
+    locations_query = supabase.table("reviews").select("company_name, location_address").execute().data
 except:
     pass
 
@@ -88,12 +88,20 @@ except Exception as e:
 
 if reviews_data:
     for r in reviews_data:
+        # Calculate overall score dynamically from stored scores if needed
         st.markdown(
             f"""
-            <div style='background-color: #F5F2EB; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #D3CFC9;'>
-                <strong style='color: #3E3D3A;'>🏢 {r.get('company_name', 'Unknown Location')}</strong> ({r.get('location_address', 'No Address Provided')})<br>
-                <span style='color: #E6A23C;'>{'★' * int(r.get('rating', 5))}</span><br>
-                <p style='margin-top: 5px; color: #4A4A4A;'>"{r.get('comment', '')}"</p>
+            <div style='background-color: #2E2D2A; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #D3CFC9;'>
+                <strong style='color: #FDFBF7;'>🏢 {r.get('company_name', 'Unknown Location')}</strong> ({r.get('location_address', 'No Address Provided')})<br>
+                <span style='color: #E6A23C;'>⭐ Overall Rating: {r.get('overall_rating', 5)}/5</span><br>
+                <small style='color: #D3CFC9;'>
+                    Management: {r.get('rating_management', 5)} | 
+                    Workplace Cleanliness: {r.get('rating_cleanliness', 5)} | 
+                    Employee Treatment: {r.get('rating_treatment', 5)} | 
+                    Amenities: {r.get('rating_amenities', 5)} | 
+                    Growth/Pay: {r.get('rating_growth', 5)}
+                </small>
+                <p style='margin-top: 5px; color: #FDFBF7;'>"{r.get('comment', '')}"</p>
             </div>
             """, 
             unsafe_allow_html=True
@@ -101,30 +109,44 @@ if reviews_data:
 else:
     st.write("No location profiles submitted yet.")
 
-# --- SUBMIT REVIEWS FORM (No username field) ---
+# --- SUBMIT REVIEWS FORM WITH 5 SPECIFIC RATING CRITERIA ---
 st.subheader("Rate a Specific Work Location")
 with st.form("workspace_review_form", clear_on_submit=True):
     company_name = st.text_input("Company or Venue Name", placeholder="e.g. Target, local office space")
     location_address = st.text_input("Exact Physical Location Address", placeholder="Street Address, City, State")
-    rating = st.slider("Work Environment Rating", min_value=1, max_value=5, value=5)
-    comment = st.text_area("Detailed Review (Workspace cleanliness, management, treatment, amenities)")
+    
+    # Restored 5 custom lines for explicit breakdowns
+    rating_management = st.slider("1. Management Quality & Support", min_value=1, max_value=5, value=5)
+    rating_cleanliness = st.slider("2. Workplace Cleanliness & Environment", min_value=1, max_value=5, value=5)
+    rating_treatment = st.slider("3. Employee Treatment & Safety", min_value=1, max_value=5, value=5)
+    rating_amenities = st.slider("4. Provided Amenities & Facilities", min_value=1, max_value=5, value=5)
+    rating_growth = st.slider("5. Career Growth & Fair Compensation", min_value=1, max_value=5, value=5)
+    
+    comment = st.text_area("Detailed Summary Review")
     
     submit_btn = st.form_submit_button("Submit Rating Details")
 
     if submit_btn:
         if company_name and location_address and comment:
+            # Calculate overall average slider score dynamically
+            overall_avg = round((rating_management + rating_cleanliness + rating_treatment + rating_amenities + rating_growth) / 5, 1)
+            
             new_review = {
                 "company_name": company_name, 
                 "location_address": location_address, 
-                "rating": rating, 
+                "rating_management": rating_management,
+                "rating_cleanliness": rating_cleanliness,
+                "rating_treatment": rating_treatment,
+                "rating_amenities": rating_amenities,
+                "rating_growth": rating_growth,
+                "overall_rating": overall_avg,
                 "comment": comment
             }
             try:
                 supabase.table("reviews").insert(new_review).execute()
-                st.success("🎉 Location details logged! The public map feed is updating...")
+                st.success("🎉 Detailed metrics logged successfully! Map feed reloading...")
                 st.rerun()
             except Exception as e:
                 st.error(f"Supabase Database Failure: {e}")
         else:
             st.error("Please fill in the Company, Address, and Review fields before submitting.")
-
