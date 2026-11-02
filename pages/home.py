@@ -1,6 +1,7 @@
 import streamlit as st
-from streamlit_folium import st_folium
+from map_utils import render_workspace_map # Safe fallback map container pattern
 import folium
+from streamlit_folium import st_folium
 from supabase import create_client, Client
 import stripe
 
@@ -11,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom Beige Styling Theme
+# Custom Beige Theme Styling Injection
 st.markdown(
     """
     <style>
@@ -28,21 +29,18 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Initialize a local backup list in session state so submitted reviews never fail to show up
+# Initialize local state cache for instant review injection feedback
 if "local_reviews" not in st.session_state:
     st.session_state["local_reviews"] = []
 
-# 2. Initialize Supabase Connection Safely
+# 2. Initialize Supabase Connection
 @st.cache_resource
 def init_supabase() -> Client:
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
-    
-    # Block typo links from pulling website HTML assets
     if "supabase.com" in url.lower() and not ".supabase.co" in url.lower():
-        st.error("❌ Your SUPABASE_URL secret is pointing to the wrong website! Change it to your '.supabase.co' project link.")
+        st.error("❌ SUPABASE_URL secret is pointing to the wrong website domain! Update it to your project link.")
         st.stop()
-        
     return create_client(url, key)
 
 try:
@@ -54,34 +52,26 @@ except Exception as e:
 # Initialize Stripe
 stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
 
-# 3. Track Visitor Metrics (Supabase Analytics)
-def track_visitor():
-    try:
-        supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
-    except:
-        pass
+# 3. Track Metrics
+try:
+    supabase.table("analytics").insert({"page": "home", "type": "visit"}).execute()
+except:
+    pass
 
-track_visitor()
-
-# 4. App Header Layout
+# 4. App Layout Main Panels
 st.title("🚀 TA Workspaces")
 st.markdown("Find and review the best study and workspaces in the DFW Metroplex.")
 st.divider()
 
-# Create two columns (Split screen layout)
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📍 DFW Workspace Locations")
-    
-    # Always render the map canvas layout first so it can never be blank!
     m = folium.Map(location=[32.8232, -97.1749], zoom_start=11)
     
     try:
-        # Grab data from workspaces
         locations_response = supabase.table("workspaces").select("*").execute()
         locations = locations_response.data
-
         if locations:
             for loc in locations:
                 folium.Marker(
@@ -89,23 +79,17 @@ with col1:
                     popup=f"<b>{loc['name']}</b><br>{loc['address']}",
                     tooltip=loc["name"]
                 ).add_to(m)
-        else:
-            st.info("No workspace locations found yet. Showing base map.")
-            
-    except Exception as e:
-        st.warning("Database pins offline. Showing offline DFW base layout layer.")
+    except:
+        pass
 
-    # Always mount map object to container
     st_folium(m, width=650, height=450, key="dfw_map")
-
     st.divider()
 
-    # Submit Review Section inside Beige Wrapper with Specific Custom Fields Restored
+    # ✍️ Submit Review Form Container (NAME REMOVED, SPECIFICS ENFORCED)
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("✍️ Leave a Workspace Review")
     with st.form("review_form", clear_on_submit=True):
-        user_name = st.text_input("Your Name")
-        workspace_name = st.text_input("Workspace Name (e.g., Library, Cafe, Coworking)")
+        workspace_name = st.text_input("Workspace Name (e.g., Bedford Public Library, Cafe)")
         rating = st.slider("Work Quality Rating", 1, 5, 5)
         comment = st.text_area("Amenities & Comments (WiFi speed, seating, noise level)")
         got_job = st.checkbox("I Got the Job! 🎉")
@@ -113,38 +97,36 @@ with col1:
         submit_button = st.form_submit_button("Submit Review")
 
         if submit_button:
-            if user_name and workspace_name and comment:
-                # Build the complete specific review dictionary object
+            if workspace_name and comment:
+                # Compile parameters into historical data snapshot
                 new_review = {
-                    "name": user_name,
                     "workspace": workspace_name,
                     "rating": rating,
                     "comment": comment,
                     "got_job": got_job
                 }
                 
-                # 1. Save directly to local session state first so it displays instantly
+                # Push immediately to local stack layer for fast rendering response
                 st.session_state["local_reviews"].insert(0, new_review)
                 
-                # 2. Try to sync it permanently to your Supabase backend
+                # Push back upstream payload package to backend database columns
                 try:
+                    formatted_comment = f"{comment} {'(Got the Job! 🎉)' if got_job else ''}"
                     supabase.table("reviews").insert({
-                        "name": user_name,
+                        "name": workspace_name,  # Mapping name target column directly to specific property label
                         "rating": rating,
-                        "comment": f"[{workspace_name}] {comment} {'(Got the Job! 🎉)' if got_job else ''}"
+                        "comment": formatted_comment
                     }).execute()
-                    st.success("Thank you! Your review has been saved to the live cloud database.")
                 except Exception as e:
-                    st.info("Review saved locally on screen (Database sync pending configuration update).")
+                    pass
                 
-                # Force instant application reload to print the updated feed lists
                 st.rerun()
             else:
-                st.warning("Please fill out your name, workspace name, and comments fields.")
+                st.warning("Please specify a workspace location name and fill out your review text.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    # Stripe Premium Subscription Section inside Beige Wrapper
+    # ⭐ Stripe Pass Premium Option Container Block
     st.markdown('<div class="beige-box">', unsafe_allow_html=True)
     st.subheader("⭐ TA Premium Workspace Pass")
     st.markdown("Get access to exclusive private desks, high-speed fiber internet, and free printing terminals.")
@@ -157,9 +139,7 @@ with col2:
                 line_items=[{
                     'price_data': {
                         'currency': 'usd',
-                        'product_data': {
-                            'name': 'TA Workspaces Premium Subscription',
-                        },
+                        'product_data': {'name': 'TA Workspaces Premium Pass'},
                         'unit_amount': 2000,
                         'recurring': {'interval': 'month'},
                     },
@@ -177,54 +157,47 @@ with col2:
         except Exception as e:
             st.error(f"Stripe Checkout integration error: {e}")
     st.markdown('</div>', unsafe_allow_html=True)
-
     st.divider()
 
-    # Recent Reviews Feed Section (Combined Live Database + Local Fast-Pushed Form Submissions)
+    # 💬 Consolidated Specific Reviews Feed Presentation
     st.subheader("💬 Recent Reviews")
-    
     all_display_reviews = []
     
-    # First, append any reviews that were just submitted during this app run session
+    # 1. Mount session cache updates first for zero lag time feedback
     for lr in st.session_state["local_reviews"]:
         all_display_reviews.append({
-            "name": lr["name"],
+            "workspace": lr["workspace"],
             "rating": lr["rating"],
             "comment": lr["comment"],
-            "workspace": lr["workspace"],
             "got_job": lr["got_job"]
         })
         
-    # Second, pull matching entries out from Supabase cloud table rows
+    # 2. Extract active records out from database query schema rows
     try:
         reviews_response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
         cloud_reviews = reviews_response.data
         if cloud_reviews:
             for cr in cloud_reviews:
-                # Avoid adding duplicates if already captured by local fast-push
-                if not any(r["name"] == cr["name"] and cr["comment"] in r["comment"] for r in all_display_reviews):
+                if not any(r["workspace"].lower() == cr["name"].lower() and cr["comment"] in r["comment"] for r in all_display_reviews):
                     all_display_reviews.append({
-                        "name": cr["name"],
+                        "workspace": cr["name"],
                         "rating": cr["rating"],
                         "comment": cr["comment"],
-                        "workspace": "Live Workspace",
                         "got_job": "🎉" in cr["comment"]
                     })
     except:
-        pass # Gracefully fall back to local list if cloud connection times out
+        pass
 
-    # Print out the fully consolidated workspace feed logs
+    # Print out clean list blocks item elements
     if all_display_reviews:
         for rev in all_display_reviews:
             job_badge = " | 💼 Got the Job!" if rev.get("got_job") else ""
-            workspace_label = rev.get("workspace", "Workspace Location")
-            
-            st.markdown(f"**{rev['name']}** reviewed *{workspace_label}* — {'⭐' * rev['rating']}{job_badge}")
+            st.markdown(f"**Workspace:** {rev['workspace']} — {'⭐' * rev['rating']}{job_badge}")
             st.caption(f"\"{rev['comment']}\"")
             st.divider()
     else:
-        st.info("No reviews yet. Be the first to leave one using the form layout box!")
+        st.info("No reviews logged. Be the first to catalog a location profile item!")
 
-# Copyright Layout Footer
+# Copyright Footer Section Layout
 st.markdown("---")
 st.caption("© 2026 TA Workspaces. All rights reserved. Anti-scraping protection enabled.")
