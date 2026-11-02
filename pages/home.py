@@ -1,3 +1,5 @@
+```python import streamlit as st import streamlit.components.v1 as components
+# Copy and paste this block exactly: ga_code = """
 import streamlit as st
 import folium
 from streamlit_folium import st_folium
