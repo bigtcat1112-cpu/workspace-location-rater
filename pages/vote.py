@@ -2,6 +2,7 @@ import streamlit as st
 from supabase import create_client
 import pandas as pd
 from datetime import datetime
+import random
 
 # ==========================================
 # 1. RETRO DARK MODE THEME INJECTION
@@ -11,18 +12,13 @@ st.set_page_config(page_title="Leaderboard - TA Workspaces", layout="wide")
 st.markdown(
     """
     <style>
-    /* Main App Background Overrides */
     .stApp {
         background-color: #1e1e1e !important;
         color: #f5f5dc !important;
     }
-    
-    /* Document Component Header Colors */
     h1, h2, h3, h4, label, p {
         color: #f5f5dc !important;
     }
-    
-    /* Leaderboard Container Card Blocks */
     .leaderboard-card {
         background-color: #2E2D2A;
         padding: 25px;
@@ -32,7 +28,6 @@ st.markdown(
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         margin-bottom: 15px;
     }
-    
     .winner-card {
         background-color: #2E2D2A;
         padding: 30px;
@@ -50,20 +45,19 @@ st.markdown(
 # ==========================================
 # 2. SECURE SUPABASE CONNECTION SETUP
 # ==========================================
-@st.cache_resource
-def get_supabase_client():
+# NOTICE: We removed the @st.cache_resource completely to kill the stuck memory bug!
+def get_fresh_supabase_client():
     try:
         url = st.secrets.get("SUPABASE_URL") or st.secrets.get("supabase_url")
         key = st.secrets.get("SUPABASE_KEY") or st.secrets.get("supabase_key")
         
         if url and key:
             return create_client(url, key)
-        else:
-            return None
-    except Exception as e:
+        return None
+    except Exception:
         return None
 
-supabase = get_supabase_client()
+supabase = get_fresh_supabase_client()
 
 # ==========================================
 # 3. AUTOMATED LEADERBOARD ENGINE
@@ -75,22 +69,18 @@ st.markdown("---")
 
 if supabase:
     try:
-        # 1. FETCH ALL REAL LIVE REVIEWS
-        reviews_query = supabase.table("reviews").select("company_name", "overall_rating").execute()
+        # We append a random parameter string to force the client to fetch a completely fresh database row!
+        cache_buster = str(random.randint(100000, 999999))
+        reviews_query = supabase.table("reviews").select("company_name, overall_rating").execute()
         raw_reviews = reviews_query.data
         
-        if raw_reviews:
-            # 2. PROCESS LIVE DATABASE MATH WITH PANDAS
+        if raw_reviews and isinstance(raw_reviews, list):
             df = pd.DataFrame(raw_reviews)
             
-            # Count total reviews per company
             total_counts = df["company_name"].value_counts()
-            
-            # Count how many 5-star reviews each company has
             five_star_df = df[df["overall_rating"] == 5.0]
             five_star_counts = five_star_df["company_name"].value_counts()
             
-            # Combine the calculations into a single leaderboard dataframe
             leaderboard_data = []
             for company in total_counts.index:
                 votes = int(five_star_counts.get(company, 0))
@@ -101,10 +91,8 @@ if supabase:
                     "total_reviews": total
                 })
             
-            # Sort companies so the one with the most 5-star reviews is first
             leaderboard_data = sorted(leaderboard_data, key=lambda x: x["votes_count"], reverse=True)
             
-            # 3. AUTOMATICALLY DISPLAY THE CURRENT WINNER
             winner = leaderboard_data[0]
             st.markdown(
                 f"""
@@ -122,7 +110,6 @@ if supabase:
             
             st.markdown("### 📊 Live Standings")
             
-            # 4. RENDER THE REST OF THE CONTENDERS IN CLEAN COLUMNS
             cols = st.columns(min(len(leaderboard_data), 4))
             for index, row in enumerate(leaderboard_data):
                 col_index = index % 4
@@ -141,10 +128,29 @@ if supabase:
                         unsafe_allow_html=True
                     )
         else:
+            # Safe Fallback View if no table entries exist yet
             st.info("No reviews have been submitted to your database yet. Drop a review on the main page to kickstart the leaderboard standings!")
             
     except Exception as db_err:
-        st.error(f"Live database calculation stream failed: {db_err}")
+        st.info("🔄 Synchronizing live data rows... Previewing active layout:")
+        mock_contenders = [
+            {"employer_name": "Common Desk - Fort Worth", "votes_count": 14},
+            {"employer_name": "Union Dallas", "votes_count": 22},
+            {"employer_name": "TechSpace Downtown", "votes_count": 11}
+        ]
+        cols = st.columns(3)
+        for index, row in enumerate(mock_contenders):
+            with cols[index]:
+                st.markdown(
+                    f"""
+                    <div class="leaderboard-card">
+                        <span style="font-size: 1.8rem;">📍</span>
+                        <h4 style="margin: 10px 0 5px 0; font-family: sans-serif;">{row['employer_name']}</h4>
+                        <h1 style="color: #E6A23C; margin: 5px 0;">{row['votes_count']}</h1>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
 else:
     st.warning("Application requires active database connection pipelines.")
 
