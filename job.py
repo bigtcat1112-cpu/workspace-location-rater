@@ -322,6 +322,50 @@ elif menu == "🔒 Admin Panel":
                     st.rerun()
         else:
             st.info("The application review cache is completely clean.")
+import streamlit as st
+import urllib.parse
+
+st.markdown("---")
+st.header("🏅 For Featured Businesses")
+st.write("Were you rated a top-tier workspace? Grab your free digital verification badge for your website!")
+
+# Clean, modern inputs for the business owner
+business_name = st.text_input("Enter Your Business Name (e.g., CoWork Central)", value="CoWork Central")
+
+# Safely format the name so it can be passed into a link if needed
+encoded_name = urllib.parse.quote_plus(business_name)
+your_app_url = "https://streamlit.app"
+
+# 1. THE VISUAL BADGE: This is exactly what it will look like on their site
+st.markdown("##### Preview Your Badge:")
+st.markdown(
+    f"""
+    <div style="
+        background-color: #2E2D2A; 
+        border: 2px solid #E6A23C; 
+        border-radius: 12px; 
+        padding: 20px; 
+        max-width: 280px; 
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    ">
+        <span style="font-size: 2rem;">📍</span>
+        <h4 style="color: #FDFBF7; margin: 10px 0 5px 0; font-family: sans-serif;">TOP RATED</h4>
+        <h3 style="color: #E6A23C; margin: 0 0 10px 0; font-family: sans-serif; font-size: 1.3rem;">WORKSPACE</h3>
+        <p style="color: #D3CFC9; font-size: 0.8rem; margin: 5px 0; font-family: sans-serif;">Verified on</p>
+        <strong style="color: #FDFBF7; font-family: sans-serif; letter-spacing: 1px; font-size: 0.9rem;">TA WORKSPACES</strong>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# 2. THE LOOPHOLE EMBED CODE: The copy-and-paste snippet they can take
+st.markdown("##### Copy Your Embed Code:")
+st.write("Paste this HTML code into your website's editor to display your badge:")
+
+raw_html_snippet = f"""<a href="{your_app_url}" target="_blank" style="text-decoration: none;"><div style="background-color: #2E2D2A; border: 2px solid #E6A23C; border-radius: 12px; padding: 20px; max-width: 280px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-family: sans-serif;"><span style="font-size: 2rem;">📍</span><h4 style="color: #FDFBF7; margin: 10px 0 5px 0;">TOP RATED</h4><h3 style="color: #E6A23C; margin: 0 0 10px 0; font-size: 1.3rem;">WORKSPACE</h3><p style="color: #D3CFC9; font-size: 0.8rem; margin: 5px 0;">Verified on</p><strong style="color: #FDFBF7; letter-spacing: 1px; font-size: 0.9rem;">TA WORKSPACES</strong></div></a>"""
+
+st.code(raw_html_snippet, language="html")
 
 # -------------------------------------------------------------
 # 5. LEGAL & SECURITY ANTI-SCRAPING FOOTER NOTICE
