@@ -45,7 +45,6 @@ if str(date.today()) != st.session_state.last_tracked_date:
     st.session_state.total_visitors_today = 1
     st.session_state.last_tracked_date = str(date.today())
 else:
-    # Simulating standard active user routing hits
     st.session_state.total_visitors_today += 1
 
 if "authenticated" not in st.session_state:
@@ -132,7 +131,6 @@ if menu == "🔍 Discover Workspaces":
             use_container_width=True
         )
         
-        # RESTORED OLD FORMAT: Displaying explicit text list instead of grid loops
         st.markdown("---")
         st.subheader("⭐ Recent Corporate Ratings")
         for r in st.session_state.reviews:
@@ -197,11 +195,12 @@ elif menu == "💼 I Got the Job!":
             if hired_company:
                 st.session_state.jobs_placed_count += 1
                 st.balloons()
-                st.success(f"Awesome! Congratulations on your new role at {hired_company}! Your status tracker updated successfully.")
+                st.success(f"Awesome! New role tracked at {hired_company}!")
+                st.rerun()
             else:
                 st.error("Please enter the company name to celebrate your victory.")
 
-# FEATURE D: ENHANCED ADMIN MANAGEMENT PORTAL (WITH USER PERFORMANCE METRICS)
+# FEATURE D: ENHANCED ADMIN MANAGEMENT PORTAL
 elif menu == "🔒 Admin Panel":
     st.title("🔒 Terminal Control Panel")
     
@@ -219,8 +218,9 @@ elif menu == "🔒 Admin Panel":
     else:
         st.sidebar.button("Log Out Admin", on_click=lambda: st.session_state.update({"authenticated": False}))
         
-st.subheader("📈 Application Metrics & User Analytics")
-m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+        # Application Metrics Display
+        st.subheader("📈 Application Metrics & User Analytics")
+        m_col1, m_col2, m_col3, m_col4 = st.columns(4)
 m_col1.metric("Daily Users So Far", st.session_state.total_visitors_today)
 m_col2.metric("Hired Victory Stories", st.session_state.jobs_placed_count)
 m_col3.metric("Normal Members Pool", st.session_state.normal_members_count)
@@ -237,6 +237,8 @@ st.success("Entry removed from storage pool.")
 st.rerun()
 else:
 st.info("The application review cache is completely clean.")
+
+-------------------------------------------------------------
 
 -------------------------------------------------------------
 
