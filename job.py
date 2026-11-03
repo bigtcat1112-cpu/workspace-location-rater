@@ -88,7 +88,13 @@ if st.session_state.subscribed:
         st.query_params.clear()
         st.rerun()
 else:
-    st.sidebar.info("Unlock advanced filter tools.")
+    st.sidebar.info(
+        "🚀 **What Premium Includes:**\n"
+        "* Unlock advanced speed & filter tools\n"
+        "* Premium badge status\n\n"
+        "🌱 **Eco Impact:**\n"
+        "**1.5% of all subscription profits** go directly to cutting-edge tech removing CO2 from the atmosphere."
+    )
     if st.sidebar.button("Subscribe Now ($20/mo)"):
         try:
             app_url = "https://streamlit.app" 
