@@ -1,11 +1,12 @@
 import streamlit as st
 from supabase import create_client
-import time
+import pandas as pd
+from datetime import datetime
 
 # ==========================================
 # 1. RETRO DARK MODE THEME INJECTION
 # ==========================================
-st.set_page_config(page_title="Vote - TA Workspaces", layout="wide")
+st.set_page_config(page_title="Leaderboard - TA Workspaces", layout="wide")
 
 st.markdown(
     """
@@ -24,12 +25,22 @@ st.markdown(
     /* Leaderboard Container Card Blocks */
     .leaderboard-card {
         background-color: #2E2D2A;
-        padding: 20px;
+        padding: 25px;
         border-radius: 12px;
         text-align: center;
         border-top: 4px solid #E6A23C;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         margin-bottom: 15px;
+    }
+    
+    .winner-card {
+        background-color: #2E2D2A;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        border: 2px solid #E6A23C;
+        box-shadow: 0 6px 15px rgba(230, 162, 60, 0.2);
+        margin-bottom: 25px;
     }
     </style>
     """,
@@ -42,7 +53,6 @@ st.markdown(
 @st.cache_resource
 def get_supabase_client():
     try:
-        # Checking both uppercase and lowercase to prevent the secret key error!
         url = st.secrets.get("SUPABASE_URL") or st.secrets.get("supabase_url")
         key = st.secrets.get("SUPABASE_KEY") or st.secrets.get("supabase_key")
         
@@ -56,94 +66,87 @@ def get_supabase_client():
 supabase = get_supabase_client()
 
 # ==========================================
-# 3. INTERACTIVE VOTING INTERFACE
+# 3. AUTOMATED LEADERBOARD ENGINE
 # ==========================================
-st.title("🏆 DFW Workspace of the Month")
-st.write("Cast your vote for the ultimate remote work location in the metroplex. Results update in real-time!")
+current_month_name = datetime.now().strftime('%B %Y')
+st.title(f"🏆 DFW Workspace Leaderboard — {current_month_name}")
+st.write("This leaderboard ranks local workspaces automatically based on live, verified user reviews.")
 st.markdown("---")
-
-# Initialize session anti-spam switch 
-if "has_voted_this_session" not in st.session_state:
-    st.session_state.has_voted_this_session = False
 
 if supabase:
-    # 1. FETCH LIVE CONTENDERS AND VOTES FROM SUPABASE
     try:
-        votes_query = supabase.table("employer_votes").select("*").order("votes_count", desc=True).execute()
-        contenders = votes_query.data
-    except Exception as fetch_err:
-        st.error(f"Could not sync live leaderboard profiles: {fetch_err}")
-        contenders = []
-
-    # 2. RENDER THE DYNAMIC CARDS
-    if contenders:
-        # Create equal columns side-by-side dynamically based on row counts
-        cols = st.columns(len(contenders))
+        # 1. FETCH ALL REAL LIVE REVIEWS
+        reviews_query = supabase.table("reviews").select("company_name", "overall_rating").execute()
+        raw_reviews = reviews_query.data
         
-        for index, row in enumerate(contenders):
-            name = row["employer_name"]
-            current_votes = row["votes_count"]
-            row_id = row["id"]
+        if raw_reviews:
+            # 2. PROCESS LIVE DATABASE MATH WITH PANDAS
+            df = pd.DataFrame(raw_reviews)
             
-            with cols[index]:
-                # Visual Container Card Injection
-                st.markdown(
-                    f"""
-                    <div class="leaderboard-card">
-                        <span style="font-size: 1.8rem;">📍</span>
-                        <h4 style="margin: 10px 0 5px 0; font-family: sans-serif; font-size: 1.1rem;">{name}</h4>
-                        <h1 style="color: #E6A23C; margin: 5px 0; font-size: 2.5rem;">{current_votes}</h1>
-                        <p style="color: #D3CFC9; font-size: 0.8rem; margin: 0; font-family: sans-serif;">Verified Votes</p>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-                
-                # Check button state block
-                button_disabled = st.session_state.has_voted_this_session
-                
-                # Dynamic action button centered under card
-                if st.button(f"Vote for {name.split(' - ')[0]}", key=f"vote_btn_{row_id}", disabled=button_disabled, use_container_width=True):
-                    try:
-                        # Database Transaction: Safely increment column value by 1
-                        new_vote_total = current_votes + 1
-                        supabase.table("employer_votes").update({"votes_count": new_vote_total}).eq("id", row_id).execute()
-                        
-                        # Set lock state flags and restart client view instantly
-                        st.session_state.has_voted_this_session = True
-                        st.toast(f"🎉 Vote registered for {name}!")
-                        time.sleep(0.5)
-                        st.rerun()
-                    except Exception as vote_err:
-                        st.error(f"Transaction failed: {vote_err}")
-                        
-        st.markdown("---")
-        if st.session_state.has_voted_this_session:
-            st.info("🔒 Thanks for casting your vote! Your choice has been safely saved in the cloud database container for this session.")
-    else:
-        st.info("No active contenders set up in your database table for this month's tracking cycle yet.")
-else:
-    # Backup Mock UI if database secrets haven't fully synced over yet
-    st.info("🔄 Connecting to live data streams... Previewing layout:")
-    mock_contenders = [
-        {"employer_name": "Common Desk - Fort Worth", "votes_count": 14},
-        {"employer_name": "Union Dallas", "votes_count": 22},
-        {"employer_name": "TechSpace Downtown", "votes_count": 11}
-    ]
-    cols = st.columns(3)
-    for index, row in enumerate(mock_contenders):
-        with cols[index]:
+            # Count total reviews per company
+            total_counts = df["company_name"].value_counts()
+            
+            # Count how many 5-star reviews each company has
+            five_star_df = df[df["overall_rating"] == 5.0]
+            five_star_counts = five_star_df["company_name"].value_counts()
+            
+            # Combine the calculations into a single leaderboard dataframe
+            leaderboard_data = []
+            for company in total_counts.index:
+                votes = int(five_star_counts.get(company, 0))
+                total = int(total_counts.get(company, 0))
+                leaderboard_data.append({
+                    "company_name": company,
+                    "votes_count": votes,
+                    "total_reviews": total
+                })
+            
+            # Sort companies so the one with the most 5-star reviews is first
+            leaderboard_data = sorted(leaderboard_data, key=lambda x: x["votes_count"], reverse=True)
+            
+            # 3. AUTOMATICALLY DISPLAY THE CURRENT WINNER
+            winner = leaderboard_data[0]
             st.markdown(
                 f"""
-                <div class="leaderboard-card">
-                    <span style="font-size: 1.8rem;">📍</span>
-                    <h4 style="margin: 10px 0 5px 0; font-family: sans-serif;">{row['employer_name']}</h4>
-                    <h1 style="color: #E6A23C; margin: 5px 0;">{row['votes_count']}</h1>
+                <div class="winner-card">
+                    <span style="font-size: 3rem;">👑</span>
+                    <h2 style="color: #E6A23C; margin: 10px 0 5px 0; letter-spacing: 1px;">CURRENT MONTHLY LEADER</h2>
+                    <h1 style="font-size: 2.8rem; margin: 5px 0;">{winner['company_name']}</h1>
+                    <p style="color: #D3CFC9; font-size: 1.1rem; margin: 0;">
+                        Dominating the charts with <b>{winner['votes_count']}</b> perfect 5-Star ratings!
+                    </p>
                 </div>
-                """, 
+                """,
                 unsafe_allow_html=True
             )
-            st.button("Vote", key=f"mock_btn_{index}", disabled=True, use_container_width=True)
+            
+            st.markdown("### 📊 Live Standings")
+            
+            # 4. RENDER THE REST OF THE CONTENDERS IN CLEAN COLUMNS
+            cols = st.columns(min(len(leaderboard_data), 4))
+            for index, row in enumerate(leaderboard_data):
+                col_index = index % 4
+                with cols[col_index]:
+                    st.markdown(
+                        f"""
+                        <div class="leaderboard-card">
+                            <span style="font-size: 1.5rem;">📍 Rank #{index + 1}</span>
+                            <h4 style="margin: 10px 0 5px 0; font-family: sans-serif; font-size: 1.1rem;">{row['company_name']}</h4>
+                            <h1 style="color: #E6A23C; margin: 5px 0; font-size: 2.2rem;">{row['votes_count']}</h1>
+                            <p style="color: #D3CFC9; font-size: 0.8rem; margin: 0; font-family: sans-serif;">
+                                5-Star Votes ({row['total_reviews']} total reviews)
+                            </p>
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
+        else:
+            st.info("No reviews have been submitted to your database yet. Drop a review on the main page to kickstart the leaderboard standings!")
+            
+    except Exception as db_err:
+        st.error(f"Live database calculation stream failed: {db_err}")
+else:
+    st.warning("Application requires active database connection pipelines.")
 
 st.markdown("---")
-st.caption("© 2026 TA Workspaces. Real-time platform data sync active.")
+st.caption("© 2026 TA Workspaces. Fully automated live metrics tracking active.")
