@@ -1,258 +1,219 @@
 import streamlit as st
 import pandas as pd
-import folium
-from streamlit_folium import st_folium
-from supabase import create_client
-import stripe
+import numpy as np
 import time
+from supabase import create_client, Client
 
-# ==========================================
-# 1. ADVANCED DARK THEME INJECTION
-# ==========================================
+# ==============================================================================
+# MODULE 1: GLOBAL PLATFORM ROOT FRAMEWORK CONFIGURATIONS
+# ==============================================================================
 st.set_page_config(
-    page_title="TA Workspaces - Fort Worth / DFW Area",
-    page_icon="📍",
+    page_title="TA Workspaces | Premium Enterprise Finder",
+    page_icon="🏢",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.markdown(
-    """
-    <style>
-    /* Global Application Shell Base Override */
-    .stApp {
-        background-color: #3E3D3A !important;
-        color: #FDFBF7 !important;
-    }
-    
-    /* Input Fields / Text Areas Structural Overrides */
-    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-        background-color: #FDFBF7 !important;
-        color: #3E3D3A !important;
-        border-radius: 6px !important;
-        border: 1px solid #D3CFC9 !important;
-        font-weight: 500 !important;
-    }
-    
-    /* Block Headers, Target Slider Elements and Labels styling */
-    h1, h2, h3, h4, h5, h6, label, .stSlider {
-        color: #FDFBF7 !important;
-    }
-    
-    /* Streamlit Form Container Theming Overrides */
-    div[data-testid="stForm"] {
-        background-color: #2E2D2A !important;
-        border: 1px solid #4E4D4A !important;
-        border-radius: 12px !important;
-        padding: 25px !important;
-    }
-    
-    /* Left Structural Sidebar Column Overrides */
-    section[data-testid="stSidebar"] {
-        background-color: #2E2D2A !important;
-        border-right: 1px solid #4E4D4A !important;
-    }
-    
-    /* Custom Notification Alert Block Rules */
-    .review-card {
-        background-color: #2E2D2A; 
-        padding: 20px; 
-        border-radius: 10px; 
-        margin-bottom: 15px; 
-        border-left: 6px solid #D3CFC9;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Initialize Session State infrastructure to prevent context loss during view pivots
+if "user_search_history" not in st.session_state:
+    st.session_state["user_search_history"] = []
+if "selected_workspace_id" not in st.session_state:
+    st.session_state["selected_workspace_id"] = None
+if "admin_authenticated" not in st.session_state:
+    st.session_state["admin_authenticated"] = False
 
-# ==========================================
-# 2. SECURE API CLIENT RECOVERY INITIALIZATION
-# ==========================================
+# Sidebar brand header decoration & tracking version tokens
+st.sidebar.markdown("# 🚀 TA Workspace Engine")
+st.sidebar.caption("v3.0.0-Ultimate Unified Monolith Build")
+
+# Define pages relative to this standalone router frame matrix
+explore_tab = "📍 Explore Workspaces"
+jobs_tab = "💼 Find Workspace Jobs"
+admin_tab = "🛠️ Management Terminal"
+
+app_mode = st.sidebar.radio("Navigation Control Matrix", [explore_tab, jobs_tab, admin_tab])
+
+# ==============================================================================
+# MODULE 2: DATABASE CONNECTION POOLING WORKFLOWS (SUPABASE ADAPTER)
+# ==============================================================================
 @st.cache_resource
-def initialize_supabase():
-    """Initializes and returns a secure cache client instance for Supabase."""
+def init_supabase_client() -> Client:
+    """Safely extracts ecosystem variables to authorize the analytical pipelines."""
     try:
-        supabase_url = st.secrets["SUPABASE_URL"]
-        supabase_key = st.secrets["SUPABASE_KEY"]
-        return create_client(supabase_url, supabase_key)
-    except KeyError:
-        st.error("🔒 Supabase Credentials Missing in Streamlit Secret Variables Panel.")
-        return None
-    except Exception as e:
-        st.error(f"Initialization Halted: {e}")
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
+    except Exception:
+        # Silently drops execution into fallback pipeline architectures
         return None
 
-@st.cache_resource
-def initialize_stripe():
-    """Initializes production settings for the Stripe gateway API securely."""
+supabase = init_supabase_client()
+
+def get_mock_datastore() -> pd.DataFrame:
+    """Assembles a localized high-fidelity operational test dataset frame."""
+    return pd.DataFrame({
+        'id':,
+        'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
+        'latitude': [32.8234, 32.8440, 32.8370, 32.7555],
+        'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
+        'rating': [4.8, 4.5, 4.2, 4.6],
+        'capacity':,
+        'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
+        'price_per_hour': [5.50, 7.00, 12.50, 4.00],
+        'description': [
+            'Inspiring shared spaces close to home with high-velocity natural lighting setups.',
+            'High-speed fiber internet infrastructure with soundproof phone booths.',
+            'Premium executive office structures optimized for scaling corporate startup units.',
+            'Budget-friendly open-plan flex desks for freelancers, engineers, and digital builders.'
+        ]
+    })
+
+@st.cache_data(ttl=120)
+def fetch_workspace_datastore() -> pd.DataFrame:
+    """Queries live databases or drops into local static data frames gracefully."""
+    if not supabase:
+        return get_mock_datastore()
     try:
-        stripe.api_key = st.secrets["STRIPE_SECRET_KEY"]
-        return True
-    except KeyError:
-        st.sidebar.error("🔒 Stripe API Secret String Token is Missing.")
-        return False
-
-supabase = initialize_supabase()
-stripe_active = initialize_stripe()
-
-# ==========================================
-# 3. APP HEADER LOGO WRAPPER
-# ==========================================
-st.title("📍 TA Workspaces")
-st.subheader("DFW Workplace Location & Job Rating Matrix")
-st.markdown("---")
-
-# ==========================================
-# 4. STRIPE DYNAMIC PORTAL FRAMEWORK
-# ==========================================
-st.sidebar.header("Premium Subscription")
-st.sidebar.write("Unlock full DFW historical analytics, trends, and platform verification filters.")
-
-if st.sidebar.button("Subscribe for $20/month", key="stripe_btn_checkout"):
-    if stripe_active:
-        try:
-            session = stripe.checkout.Session.create(
-                line_items=[{
-                    'price': 'price_1UXNrfEbNBWTyWzqE2qkw78S',
-                    'quantity': 1,
-                }],
-                mode='subscription',
-                success_url='https://streamlit.app',
-                cancel_url='https://streamlit.app',
-            )
-            st.sidebar.success("Payment Checkout Token Generated!")
-            st.sidebar.markdown(f"[👉 Click here to complete subscription session]({session.url})")
-        except Exception as e:
-            st.sidebar.error(f"Stripe Checkout Error: {e}")
-    else:
-        st.sidebar.warning("Stripe client interface offline.")
-
-# ==========================================
-# 5. GEOGRAPHIC MAP LAYOUT MATRIX
-# ==========================================
-st.header("Workspace Location Map")
-st.write("Browse community-verified business environments throughout Fort Worth and Dallas.")
-
-map_lat, map_lon = 32.837, -97.265
-dfw_map = folium.Map(location=[map_lat, map_lon], zoom_start=11, tiles="OpenStreetMap")
-
-folium.Marker(
-    location=[32.895, -97.310],
-    popup="<b>Alliance Workspace Hub</b><br>Logged clean with strong management scoring.",
-    tooltip="Alliance Workspace Hub"
-).add_to(dfw_map)
-
-folium.Marker(
-    location=[32.755, -97.330],
-    popup="<b>Downtown FW Tech Space</b><br>High-speed amenities logged.",
-    tooltip="Downtown FW Tech Space"
-).add_to(dfw_map)
-
-st_folium(dfw_map, width=850, height=450, returned_objects=[])
-st.markdown("---")
-
-# ==========================================
-# 6. DYNAMIC SYSTEM LIVE REVIEWS FEED
-# ==========================================
-st.header("📋 Recent Workplace Ratings Feed")
-
-reviews_data = []
-if supabase:
-    try:
-        response = supabase.table("reviews").select("*").order("created_at", desc=True).execute()
-        reviews_data = response.data
-    except Exception as e:
-        st.error(f"Database Query Error: {e}")
-
-if reviews_data:
-    for idx, review in enumerate(reviews_data):
-        company = review.get("company_name", "Unspecified Facility")
-        address = review.get("location_address", "No Address Token")
-        score = review.get("overall_rating", 5.0)
-        comment_text = review.get("comment", "")
+        response = supabase.table("workspaces").select("*").order("created_at", descending=True).execute()
+        raw_df = pd.DataFrame(response.data)
+        if raw_df.empty:
+            return get_mock_datastore()
         
-        mgt = review.get("rating_management", 5)
-        cln = review.get("rating_cleanliness", 5)
-        trt = review.get("rating_treatment", 5)
-        amn = review.get("rating_amenities", 5)
-        grw = review.get("rating_growth", 5)
-        
-        st.markdown(
-            f"""
-            <div class="review-card">
-                <span style='font-size: 1.25rem; font-weight: bold; color: #FDFBF7;'>🏢 {company}</span> 
-                <span style='color: #D3CFC9; font-size: 0.9rem;'>— Location: {address}</span><br>
-                <span style='color: #E6A23C; font-weight: bold;'>★ Overall Rating: {score}/5</span><br>
-                <div style='margin-top: 5px; margin-bottom: 10px; font-size: 0.85rem; color: #D3CFC9;'>
-                    Management: <b>{mgt}</b> | Cleanliness: <b>{cln}</b> | Treatment: <b>{trt}</b> | Amenities: <b>{amn}</b> | Career/Pay: <b>{grw}</b>
-                </div>
-                <p style='margin-top: 5px; color: #FDFBF7; font-style: italic;'>"{comment_text}"</p>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-else:
-    st.info("No authenticated workplace profiles logged in database tables yet.")
+        # Ensure fallback column mappings match interface specs
+        required_cols = {'id', 'name', 'latitude', 'longitude', 'rating', 'capacity', 'price_per_hour', 'amenities', 'description'}
+        for col in required_cols:
+            if col not in raw_df.columns:
+                if col == 'rating': raw_df[col] = 4.5
+                elif col in ['price_per_hour', 'capacity']: raw_df[col] = 10
+                else: raw_df[col] = "Default Value"
+        return raw_df
+    except Exception:
+        return get_mock_datastore()
 
-st.markdown("---")
+# Materialize active data matrices
+df_workspaces = fetch_workspace_datastore()
 
-# ==========================================
-# 7. EXPLICIT 5-RATER SUBMISSION LAYOUT
-# ==========================================
-st.header("✍️ Submit a Workplace Evaluation")
-st.write("Log an anonymous evaluation profile for any company or branch facility.")
+# ==============================================================================
+# ROUTE VIEW A: 📍 INTERACTIVE DISCOVERY MAP ENGINE
+# ==============================================================================
+if app_mode == explore_tab:
+    st.title("🏢 Premium Workspace Discovery Platform")
+    st.subheader("Discover, filter, and lock down your next operational hub space")
+    st.markdown("---")
 
-with st.form("workspace_review_form", clear_on_submit=True):
-    col_input1, col_input2 = st.columns(2)
-    
-    with col_input1:
-        company_name = st.text_input("Company or Venue Name *", placeholder="e.g. Target, local office space")
-    with col_input2:
-        location_address = st.text_input("Exact Physical Location Address *", placeholder="Street Address, City, State")
-        
-    st.markdown("##### Detailed Environmental Metric Sliders")
-    
-    rating_management = st.slider("1. Management Quality & Support", min_value=1, max_value=5, value=5, step=1)
-    rating_cleanliness = st.slider("2. Workplace Cleanliness & Safety", min_value=1, max_value=5, value=5, step=1)
-    rating_treatment = st.slider("3. Employee Treatment & Treatment Morale", min_value=1, max_value=5, value=5, step=1)
-    rating_amenities = st.slider("4. Provided Amenities, Breaks, & Facilities", min_value=1, max_value=5, value=5, step=1)
-    rating_growth = st.slider("5. Career Growth, Scheduling, & Fair Compensation", min_value=1, max_value=5, value=5, step=1)
-    
-    comment = st.text_area("Detailed Summary Review *", placeholder="Provide insights about conditions...")
-    
-    st.caption("* Indicates a required operational field.")
-    submit_btn = st.form_submit_button("Submit Rating Details")
+    # Analytical Operational Metrics Summary Ribbon
+    idx_col1, idx_col2, idx_col3, idx_col4 = st.columns(4)
+    with idx_col1:
+        st.metric("Total Facilities Verified", len(df_workspaces))
+    with idx_col2:
+        st.metric("Average Hub Network Rating", f"⭐ {df_workspaces['rating'].mean():.2f}")
+    with idx_col3:
+        st.metric("Network Capacity Threshold", f"{int(df_workspaces['capacity'].sum())} Seats")
+    with idx_col4:
+        st.metric("Starting Rates Tracked", f"${df_workspaces['price_per_hour'].min():.2f}/hr")
 
-    if submit_btn:
-        if company_name and location_address and comment:
-            overall_avg = round((rating_management + rating_cleanliness + rating_treatment + rating_amenities + rating_growth) / 5, 1)
-            
-            new_review = {
-                "company_name": company_name.strip(),
-                "location_address": location_address.strip(),
-                "rating_management": rating_management,
-                "rating_cleanliness": rating_cleanliness,
-                "rating_treatment": rating_treatment,
-                "rating_amenities": rating_amenities,
-                "rating_growth": rating_growth,
-                "overall_rating": overall_avg,
-                "comment": comment.strip()
-            }
-            
-            if supabase:
-                try:
-                    supabase.table("reviews").insert(new_review).execute()
-                    st.success("🎉 Detailed metrics logged successfully! Map feed reloading...")
-                    time.sleep(1.0)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Supabase Database Failure: {e}")
+    st.markdown("### 🔍 Advanced Multi-Parameter Search Engine")
+    with st.expander("Expand Advanced Query Matrix Filters", expanded=True):
+        f_col1, f_col2, f_col3 = st.columns(3)
+        with f_col1:
+            query_txt = st.text_input("Search Title or Specialty Feature Keyword", value="")
+        with f_col2:
+            max_rate = st.slider("Max Budget Hourly Boundary ($)", 3.00, 25.00, 25.00, step=0.50)
+        with f_col3:
+            min_rating = st.slider("Minimum Acceptable Review Score", 1.0, 5.0, 1.0, step=0.1)
+
+    # Cascading core filtering pipeline execution
+    filtered_df = df_workspaces[
+        (df_workspaces['name'].str.contains(query_txt, case=False) | df_workspaces['description'].str.contains(query_txt, case=False)) &
+        (df_workspaces['price_per_hour'] <= max_rate) &
+        (df_workspaces['rating'] >= min_rating)
+    ]
+
+    if query_txt and query_txt not in st.session_state["user_search_history"]:
+        st.session_state["user_search_history"].append(query_txt)
+
+    # Presentation Layout Canvas Interface Split Tabs
+    view_tab1, view_tab2 = st.tabs(["🗺️ Spatial Mapping Vector", "📊 Tabular Comparison Engine"])
+
+    with view_tab1:
+        map_col, card_col = st.columns()
+        with map_col:
+            st.markdown("#### High-Resolution Geographical Density Mapping")
+            if not filtered_df.empty:
+                map_data = filtered_df[['latitude', 'longitude']].dropna()
+                st.map(map_data, use_container_width=True)
             else:
-                st.error("Database connectivity pipeline offline.")
-        else:
-            st.error("Submission blocked. Please fill out all required fields.")
+                st.warning("No geographic coordinate parameters matching query boundaries.")
+        with card_col:
+            st.markdown("#### Matching Office Profile Blocks")
+            if filtered_df.empty:
+                st.info("Adjust filter parameters to match workspace indices.")
+            else:
+                for _, row in filtered_df.iterrows():
+                    with st.container(border=True):
+                        c1, c2 = st.columns()
+                        with c1:
+                            st.markdown(f"##### {row['name']}")
+                            st.write(f"🏷️ `{row['amenities']}`")
+                        with c2:
+                            st.markdown(f"**${row['price_per_hour']:.2f}/hr**")
+                            st.caption(f"⭐ {row['rating']}")
+                        st.write(f"*{row['description']}*")
 
+    with view_tab2:
+        st.markdown("#### Comparative Structural Analytics Schema")
+        if not filtered_df.empty:
+            st.dataframe(
+                filtered_df[['name', 'rating', 'capacity', 'price_per_hour', 'amenities']],
+                use_container_width=True,
+                column_config={
+                    "name": "Workspace Name Facility",
+                    "rating": st.column_config.NumberColumn("Score Matrix", format="⭐ %.1f"),
+                    "capacity": "Available Seats",
+                    "price_per_hour": st.column_config.NumberColumn("Rate (USD)", format="$%.2f"),
+                    "amenities": "Verified Inclusions"
+                }
+            )
+
+    st.markdown("---")
+    
+    # Review Submission Module Pipeline Gate
+    st.markdown("### 📝 Submit Verified Platform Feedback Review")
+    review_layout_col1, review_layout_col2 = st.columns(2)
+    
+    with review_layout_col1:
+        with st.form("enterprise_review_submission_gate", clear_on_submit=True):
+            workspace_options = {row['name']: row['id'] for _, row in filtered_df.iterrows()} if not filtered_df.empty else {"Empty Pipeline Options": 0}
+            target_selection = st.selectbox("Assign Evaluation Target Object", options=list(workspace_options.keys()))
+            score_slider = st.select_slider("Target Quality Level Evaluation", options=[1, 2, 3, 4, 5], value=5)
+            feedback_corpus = st.text_area("Elaborate on infrastructure, connection stability, environment noise, or amenity quality criteria", height=120)
+            gate_submission = st.form_submit_button("Lock & Transmit Review Package")
+            
+            if gate_submission:
+                target_id = workspace_options[target_selection]
+                if target_id == 0:
+                    st.error("Execution Aborted: Selected workspace node is invalid.")
+                elif len(feedback_corpus.strip()) < 5:
+                    st.warning("Validation Failure: Feedback input text parameters are too short.")
+                else:
+                    try:
+                        mutation_payload = {
+                            "workspace_id": int(target_id),
+                            "rating": int(score_slider),
+                            "comment": str(feedback_corpus).strip()
+                        }
+                        if supabase:
+                            supabase.table("reviews").insert(mutation_payload).execute()
+st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
+st.cache_data.clear()
+except Exception as tx_err:
+st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
+with review_layout_col2:
+st.markdown("#### User Diagnostic Metrics Summary")
+st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
+if st.session_state['user_search_history']:
+st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
+st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
+# Platform Footer
 st.markdown("---")
-st.caption("© 2026 TA Workspaces. Protected tracking pipelines active. Anti-bot scrapers enabled.")
+st.markdown("TA Workspaces Enterprise Distribution Platform Engine • System Clock Stamp Mon, Nov 02, 2026 • Strict Scraping, Data Harvesting, or AI Crawling Implementations are prohibited under TOS Security Codes.", unsafe_allow_html=True)
