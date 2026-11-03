@@ -221,36 +221,35 @@ elif menu == "🔒 Admin Panel":
         # Application Metrics Display
         st.subheader("📈 Application Metrics & User Analytics")
         m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-m_col1.metric("Daily Users So Far", st.session_state.total_visitors_today)
-m_col2.metric("Hired Victory Stories", st.session_state.jobs_placed_count)
-m_col3.metric("Normal Members Pool", st.session_state.normal_members_count)
-m_col4.metric("Premium Member Subscriptions", st.session_state.premium_members_count)
-st.markdown("---")
-st.subheader("🛠 Database Administration Mode")
-if st.session_state.reviews:
-for idx, r in enumerate(st.session_state.reviews):
-col1, col2 = st.columns(2)
-col1.write(f"{r['company']} ({r['location']})")
-if col2.button("Purge Entry", key=f"del_{idx}"):
-st.session_state.reviews.pop(idx)
-st.success("Entry removed from storage pool.")
-st.rerun()
-else:
-st.info("The application review cache is completely clean.")
-
--------------------------------------------------------------
-
--------------------------------------------------------------
-
+        m_col1.metric("Daily Users So Far", st.session_state.total_visitors_today)
+        m_col2.metric("Hired Victory Stories", st.session_state.jobs_placed_count)
+        m_col3.metric("Normal Members Pool", st.session_state.normal_members_count)
+        m_col4.metric("Premium Member Subscriptions", st.session_state.premium_members_count)
+        
+        st.markdown("---")
+        st.subheader("🛠 Database Administration Mode")
+        
+        if st.session_state.reviews:
+            for idx, r in enumerate(st.session_state.reviews):
+                col1, col2 = st.columns(2)
+                col1.write(f"**{r['company']}** ({r['location']})")
+                if col2.button("Purge Entry", key=f"del_{idx}"):
+                    st.session_state.reviews.pop(idx)
+                    st.success("Entry removed from storage pool.")
+                    st.rerun()
+        else:
+            st.info("The application review cache is completely clean.")
+# -------------------------------------------------------------
+# 5. LEGAL & SECURITY ANTI-SCRAPING FOOTER NOTICE
+# -------------------------------------------------------------
 st.markdown("---")
 st.markdown(
-"""
-
-© 2026 TA Workspaces. All Rights Reserved. 
-
-🔒 Anti-Scraping Shield Active: Automated collection, data harvesting, processing, or structural cloning
-of this application's layout modules, rating definitions, or stored caches is strictly prohibited by law.
-
-""",
-unsafe_allow_html=True
+    """
+    <div style='text-align: center; color: grey; font-size: 0.8em;'>
+        © 2026 TA Workspaces. All Rights Reserved. <br>
+        🔒 Anti-Scraping Shield Active: Automated collection, data harvesting, processing, or structural cloning 
+        of this application's layout modules, rating definitions, or stored caches is strictly prohibited by law.
+    </div>
+    """,
+    unsafe_allow_html=True
 )
