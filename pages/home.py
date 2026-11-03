@@ -4,218 +4,139 @@ import numpy as np
 import time
 from supabase import create_client, Client
 
-# ==============================================================================
-# MODULE 1: GLOBAL PLATFORM ROOT FRAMEWORK CONFIGURATIONS
-# ==============================================================================
-st.set_page_config(
-    page_title="TA Workspaces | Premium Enterprise Finder",
-    page_icon="🏢",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="TA Workspaces", page_icon="🏢", layout="wide")
 
-# Initialize Session State infrastructure to prevent context loss during view pivots
 if "user_search_history" not in st.session_state:
     st.session_state["user_search_history"] = []
-if "selected_workspace_id" not in st.session_state:
-    st.session_state["selected_workspace_id"] = None
 if "admin_authenticated" not in st.session_state:
     st.session_state["admin_authenticated"] = False
 
-# Sidebar brand header decoration & tracking version tokens
 st.sidebar.markdown("# 🚀 TA Workspace Engine")
-st.sidebar.caption("v3.0.0-Ultimate Unified Monolith Build")
+explore_tab, jobs_tab, admin_tab = "📍 Explore", "💼 Jobs", "🛠️ Admin"
+app_mode = st.sidebar.radio("Navigation", [explore_tab, jobs_tab, admin_tab])
 
-# Define pages relative to this standalone router frame matrix
-explore_tab = "📍 Explore Workspaces"
-jobs_tab = "💼 Find Workspace Jobs"
-admin_tab = "🛠️ Management Terminal"
-
-app_mode = st.sidebar.radio("Navigation Control Matrix", [explore_tab, jobs_tab, admin_tab])
-
-# ==============================================================================
-# MODULE 2: DATABASE CONNECTION POOLING WORKFLOWS (SUPABASE ADAPTER)
-# ==============================================================================
 @st.cache_resource
-def init_supabase_client():
-    """Safely extracts ecosystem variables to authorize the analytical pipelines."""
+def init_supabase():
     try:
-        url = st.secrets["SUPABASE_URL"]
-        key = st.secrets["SUPABASE_KEY"]
-        return create_client(url, key)
+        return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
     except Exception:
-        # Silently drops execution into fallback pipeline architectures
         return None
 
-supabase = init_supabase_client()
+supabase = init_supabase()
 
-def get_mock_datastore() -> pd.DataFrame:
-    """Assembles a localized high-fidelity operational test dataset frame."""
+def get_mock_data():
     return pd.DataFrame({
         'id':,
-        'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8234, 32.8440, 32.8371, 32.7555],
-        'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.2, 4.6, 3.9],
+        'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites'],
+        'latitude': [32.8234, 32.8440, 32.8370],
+        'longitude': [-97.1706, -97.1432, -97.0819],
+        'rating': [4.8, 4.5, 4.2],
         'capacity':,
-        'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
-        'price_per_hour': [12.50, 8.00, 15.00, 6.50],
-        'description': [
-            'Inspiring shared spaces close to home with high-velocity natural lighting setups.',
-            'High-speed fiber internet infrastructure with soundproof phone booths.',
-            'Premium executive office structures optimized for scaling corporate startup units.',
-            'Budget-friendly open-plan flex desks for freelancers, engineers, and digital builders.'
-        ]
+        'amenities': ['Fiber, Coffee', 'Fiber, Monitors', '24/7, Coffee'],
+        'price_per_hour': [5.0, 7.5, 12.0],
+        'description': ['Inspiring shared spaces close to home.', 'High-speed fiber internet infrastructure.', 'Premium executive office structures.']
     })
 
 @st.cache_data(ttl=120)
-def fetch_workspace_datastore() -> pd.DataFrame:
-    """Queries live databases or drops into local static data frames gracefully."""
-    if not supabase:
-        return get_mock_datastore()
+def fetch_data():
+    if not supabase: return get_mock_data()
     try:
-        response = supabase.table("workspaces").select("*").order("created_at", descending=True).execute()
-        raw_df = pd.DataFrame(response.data)
-        if raw_df.empty:
-            return get_mock_datastore()
-        
-        # Ensure fallback column mappings match interface specs
-        required_cols = {'id', 'name', 'latitude', 'longitude', 'rating', 'capacity', 'price_per_hour', 'amenities', 'description'}
-        for col in required_cols:
-            if col not in raw_df.columns:
-                if col == 'rating': raw_df[col] = 4.5
-                elif col in ['price_per_hour', 'capacity']: raw_df[col] = 10
-                else: raw_df[col] = "Default Value"
-        return raw_df
+        res = supabase.table("workspaces").select("*").order("created_at", descending=True).execute()
+        df = pd.DataFrame(res.data)
+        return df if not df.empty else get_mock_data()
     except Exception:
-        return get_mock_datastore()
+        return get_mock_data()
 
-# Materialize active data matrices
-df_workspaces = fetch_workspace_datastore()
+df_workspaces = fetch_data()
 
-# ==============================================================================
-# ROUTE VIEW A: 📍 INTERACTIVE DISCOVERY MAP ENGINE
-# ==============================================================================
 if app_mode == explore_tab:
     st.title("🏢 Premium Workspace Discovery Platform")
-    st.subheader("Discover, filter, and lock down your next operational hub space")
-    st.markdown("---")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Facilities", len(df_workspaces))
+    col2.metric("Average Rating", f"⭐ {df_workspaces['rating'].mean():.1f}")
+    col3.metric("Total Capacity", f"{int(df_workspaces['capacity'].sum())} Seats")
+    col4.metric("Starting Price", f"${df_workspaces['price_per_hour'].min():.2f}/hr")
 
-    # Analytical Operational Metrics Summary Ribbon
-    idx_col1, idx_col2, idx_col3, idx_col4 = st.columns(4)
-    with idx_col1:
-        st.metric("Total Facilities Verified", len(df_workspaces))
-    with idx_col2:
-        st.metric("Average Hub Network Rating", f"⭐ {df_workspaces['rating'].mean():.2f}")
-    with idx_col3:
-        st.metric("Network Capacity Threshold", f"{int(df_workspaces['capacity'].sum())} Seats")
-    with idx_col4:
-        st.metric("Starting Rates Tracked", f"${df_workspaces['price_per_hour'].min():.2f}/hr")
+    with st.expander("🔍 Filters", expanded=True):
+        f1, f2, f3 = st.columns(3)
+        query = f1.text_input("Keyword Search", "")
+        max_p = f2.slider("Max Price", 3.0, 25.0, 25.0)
+        min_r = f3.slider("Min Rating", 1.0, 5.0,  1.0)
 
-    st.markdown("### 🔍 Advanced Multi-Parameter Search Engine")
-    with st.expander("Expand Advanced Query Matrix Filters", expanded=True):
-        f_col1, f_col2, f_col3 = st.columns(3)
-        with f_col1:
-            query_txt = st.text_input("Search Title or Specialty Feature Keyword", value="")
-        with f_col2:
-            max_rate = st.slider("Max Budget Hourly Boundary ($)", 3.00, 25.00, 25.00, step=0.50)
-        with f_col3:
-            min_rating = st.slider("Minimum Acceptable Review Score", 1.0, 5.0, 1.0, step=0.1)
-
-    # Cascading core filtering pipeline execution
-    filtered_df = df_workspaces[
-        (df_workspaces['name'].str.contains(query_txt, case=False) | df_workspaces['description'].str.contains(query_txt, case=False)) &
-        (df_workspaces['price_per_hour'] <= max_rate) &
-        (df_workspaces['rating'] >= min_rating)
+    f_df = df_workspaces[
+        (df_workspaces['name'].str.contains(query, case=False) | df_workspaces['description'].str.contains(query, case=False)) &
+        (df_workspaces['price_per_hour'] <= max_p) & (df_workspaces['rating'] >= min_r)
     ]
 
-    if query_txt and query_txt not in st.session_state["user_search_history"]:
-        st.session_state["user_search_history"].append(query_txt)
+    t1, t2 = st.tabs(["🗺️ Map View", "📊 List View"])
+    with t1:
+        m_col, c_col = st.columns([2, 1])
+        with m_col:
+            st.map(f_df[['latitude', 'longitude']].dropna(), use_container_width=True)
+        with c_col:
+            for _, r in f_df.head(3).iterrows():
+                with st.container(border=True):
+                    st.markdown(f"##### {r['name']} (${r['price_per_hour']}/hr)")
+                    st.caption(f"⭐ {r['rating']} | {r['amenities']}")
 
-    # Presentation Layout Canvas Interface Split Tabs
-    view_tab1, view_tab2 = st.tabs(["🗺️ Spatial Mapping Vector", "📊 Tabular Comparison Engine"])
+    with t2:
+        st.dataframe(f_df[['name', 'rating', 'capacity', 'price_per_hour', 'amenities']], use_container_width=True)
 
-    with view_tab1:
-        map_col, card_col = st.columns()
-        with map_col:
-            st.markdown("#### High-Resolution Geographical Density Mapping")
-            if not filtered_df.empty:
-                map_data = filtered_df[['latitude', 'longitude']].dropna()
-                st.map(map_data, use_container_width=True)
+    st.markdown("### 📝 Leave a Review")
+    with st.form("review_form", clear_on_submit=True):
+        opts = {r['name']: r['id'] for _, r in f_df.iterrows()} if not f_df.empty else {"No options": 0}
+        selected = st.selectbox("Select Workspace", options=list(opts.keys()))
+        rating = st.slider("Rating", 1, 5, 5)
+        comment = st.text_area("Your Review")
+        if st.form_submit_button("Submit"):
+            if opts[selected] != 0 and len(comment.strip()) >= 5:
+                try:
+                    if supabase: supabase.table("reviews").insert({"workspace_id": int(opts[selected]), "rating": rating, "comment": comment.strip()}).execute()
+                    st.success("Review submitted!")
+                    st.cache_data.clear()
+                except Exception as e:
+                    st.error(f"Error: {e}")
             else:
-                st.warning("No geographic coordinate parameters matching query boundaries.")
-        with card_col:
-            st.markdown("#### Matching Office Profile Blocks")
-            if filtered_df.empty:
-                st.info("Adjust filter parameters to match workspace indices.")
-            else:
-                for _, row in filtered_df.iterrows():
-                    with st.container(border=True):
-                        c1, c2 = st.columns()
-                        with c1:
-                            st.markdown(f"##### {row['name']}")
-                            st.write(f"🏷️ `{row['amenities']}`")
-                        with c2:
-                            st.markdown(f"**${row['price_per_hour']:.2f}/hr**")
-                            st.caption(f"⭐ {row['rating']}")
-                        st.write(f"*{row['description']}*")
+                st.warning("Please provide a valid comment.")
 
-    with view_tab2:
-        st.markdown("#### Comparative Structural Analytics Schema")
-        if not filtered_df.empty:
-            st.dataframe(
-                filtered_df[['name', 'rating', 'capacity', 'price_per_hour', 'amenities']],
-                use_container_width=True,
-                column_config={
-                    "name": "Workspace Name Facility",
-                    "rating": st.column_config.NumberColumn("Score Matrix", format="⭐ %.1f"),
-                    "capacity": "Available Seats",
-                    "price_per_hour": st.column_config.NumberColumn("Rate (USD)", format="$%.2f"),
-                    "amenities": "Verified Inclusions"
-                }
-            )
+elif app_mode == jobs_tab:
+    st.title("💼 Workspace Career Board")
+    jobs = [
+        {"role": "Workspace Operations Coordinator", "city": "Hurst, TX", "tier": "Full-Time", "pay": "$45,000"},
+        {"role": "Community Network Manager", "city": "Euless, TX", "tier": "Full-Time", "pay": "$48,000"},
+        {"role": "IT Network Specialist", "city": "Bedford, TX", "tier": "Part-Time", "pay": "$24/hr"}
+    ]
+    for j in jobs:
+        with st.container(border=True):
+            st.markdown(f"### {j['role']} ({j['tier']})")
+            st.write(f"📍 {j['city']} | 💰 {j['pay']}")
+            if st.button("Apply", key=j['role']):
+                st.toast("Application initiated!")
 
-    st.markdown("---")
-    
-    # Review Submission Module Pipeline Gate
-    st.markdown("### 📝 Submit Verified Platform Feedback Review")
-    review_layout_col1, review_layout_col2 = st.columns(2)
-    
-    with review_layout_col1:
-        with st.form("enterprise_review_submission_gate", clear_on_submit=True):
-            workspace_options = {row['name']: row['id'] for _, row in filtered_df.iterrows()} if not filtered_df.empty else {"Empty Pipeline Options": 0}
-            target_selection = st.selectbox("Assign Evaluation Target Object", options=list(workspace_options.keys()))
-            score_slider = st.select_slider("Target Quality Level Evaluation", options=[1, 2, 3, 4, 5], value=5)
-            feedback_corpus = st.text_area("Elaborate on infrastructure, connection stability, environment noise, or amenity quality criteria", height=120)
-            gate_submission = st.form_submit_button("Lock & Transmit Review Package")
-            
-            if gate_submission:
-                target_id = workspace_options[target_selection]
-                if target_id == 0:
-                    st.error("Execution Aborted: Selected workspace node is invalid.")
-                elif len(feedback_corpus.strip()) < 5:
-                    st.warning("Validation Failure: Feedback input text parameters are too short.")
+elif app_mode == admin_tab:
+    if not st.session_state["admin_authenticated"]:
+        st.title("🔐 Admin Login")
+        pass_target = st.secrets.get("ADMIN_PASSWORD", "admin_fallback_secure_99")
+        with st.form("login_form"):
+            pwd = st.text_input("Admin Password", type="password")
+            if st.form_submit_button("Login"):
+                if pwd == pass_target:
+                    st.session_state["admin_authenticated"] = True
+                    st.success("Access Granted!")
+                    st.rerun()
                 else:
-                    try:
-                        mutation_payload = {
-                            "workspace_id": int(target_id),
-                            "rating": int(score_slider),
-                            "comment": str(feedback_corpus).strip()
-                        }
-                        if supabase:
-                            supabase.table("reviews").insert(mutation_payload).execute()
-                        st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
-                        st.cache_data.clear()
-                    except Exception as tx_err:
-                        st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
-
-    with review_layout_col2:
-        st.markdown("#### User Diagnostic Metrics Summary")
-        st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
-        if st.session_state['user_search_history']:
-            st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
-        st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
-
-    # Platform Footer
-    st.markdown("---")
-    st.markdown("TA Workspaces Enterprise Distribution Platform Engine • System Clock Stamp Mon, Nov 02, 2026 • Strict Scraping, Data Harvesting, or AI Crawling Implementations are prohibited under TOS Security Codes.", unsafe_allow_html=True)
+                    st.error("Incorrect password.")
+    else:
+        st.title("🛠️ Operations Management Terminal")
+        if st.sidebar.button("Logout"):
+            st.session_state["admin_authenticated"] = False
+            st.rerun()
+            
+        m1, m2, m3 = st.columns(3)
+        m1.metric("DB Status", "99.9% Online")
+        m2.metric("Stripe Pipeline", "Test Mode Active")
+        m3.metric("Server Ingress", "Nominal")
+        
+        st.markdown("### Stripe Revenue Pipeline Simulation")
+        st.line_chart(pd.DataFrame(np.random.randn(20, 2), columns=["Revenue", "Refunds"]))
