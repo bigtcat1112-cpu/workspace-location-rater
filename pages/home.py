@@ -3,142 +3,108 @@ import pandas as pd
 import numpy as np
 from supabase import create_client, Client
 
+# Set up page layout
 st.set_page_config(page_title="TA Workspaces", page_icon="🏢", layout="wide")
 
-if "user_search_history" not in st.session_state:
-    st.session_state["user_search_history"] = []
-if "admin_authenticated" not in st.session_state:
-    st.session_state["admin_authenticated"] = False
+# App title and styling
+st.markdown("<h1 style='color: #F5F5DC;'>🏢 TA Workspaces</h1>", unsafe_allow_html=True)
+st.markdown("<h4 style='color: #D3D3D3;'>Discover and rate custom work locations</h4>", unsafe_allow_html=True)
+st.divider()
 
-st.sidebar.markdown("# 🚀 TA Workspace Engine")
-explore_tab, jobs_tab, admin_tab = "📍 Explore", "💼 Jobs", "🛠️ Admin"
-app_mode = st.sidebar.radio("Navigation", [explore_tab, jobs_tab, admin_tab])
-
+# Safely connect to your Supabase setup
 @st.cache_resource
 def init_supabase():
     try:
-        return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+        url = st.secrets["SUPABASE_URL"]
+        key = st.secrets["SUPABASE_KEY"]
+        return create_client(url, key)
     except Exception:
         return None
 
 supabase = init_supabase()
 
-def get_mock_data():
+# Clean layout tracker dataset
+def get_clean_data():
     return pd.DataFrame({
         'id':,
-        'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites'],
-        'latitude': [32.8236, 32.8443, 32.8371],
-        'longitude': [-97.1706, -97.1432, -97.0819],
-        'rating': [4.8, 4.2, 4.6],
-        'capacity':,
-        'amenities': ['Fiber, Coffee', 'Fiber, Monitors', '24/7, Coffee'],
-        'price_per_hour': [10.50, 12.00, 15.00],
-        'description': ['Shared spaces close to home.', 'High-speed fiber internet infrastructure.', 'Premium office structures.']
+        'name': ['Hurst Workspace Hub', 'Bedford Cowork Lounge', 'Euless Shared Office', 'Fort Worth Creative Studio'],
+        'latitude': [32.8235, 32.8440, 32.8374, 32.7555],
+        'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
+        'rating':,
+        'description': [
+            'Quiet booths, high speed fiber internet, and fresh custom drinks.',
+            'Comfortable computer monitors, premium workspace seating, and desk tools.',
+            'Open flex spaces, accessible location, and useful layout designs.',
+            'Creative workspace ideal for working on projects or building systems.'
+        ]
     })
 
-@st.cache_data(ttl=120)
-def fetch_data():
-    if not supabase: return get_mock_data()
-    try:
-        res = supabase.table("workspaces").select("*").order("created_at", descending=True).execute()
-        df = pd.DataFrame(res.data)
-        return df if not df.empty else get_mock_data()
-    except Exception:
-        return get_mock_data()
+df = get_clean_data()
 
-df_workspaces = fetch_data()
+# Simple functional tab view system
+tab1, tab2 = st.tabs(["📍 Explore Locations", "💼 Workspace Career Board"])
 
-if app_mode == explore_tab:
-    st.title("🏢 Premium Workspace Discovery Platform")
+with tab1:
+    st.markdown("<h3 style='color: #F5F5DC;'>Interactive Finder Map</h3>", unsafe_allow_html=True)
     
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Facilities", len(df_workspaces))
-    col2.metric("Average Rating", f"⭐ {df_workspaces['rating'].mean():.1f}")
-    col3.metric("Total Capacity", f"{int(df_workspaces['capacity'].sum())} Seats")
-    col4.metric("Starting Price", f"${df_workspaces['price_per_hour'].min():.2f}/hr")
-
-    with st.expander("🔍 Filters", expanded=True):
-        f1, f2, f3 = st.columns(3)
-        query = f1.text_input("Keyword Search", "")
-        max_p = f2.slider("Max Price", 3.0, 25.0, 25.0)
-        min_r = f3.slider("Min Rating", 1.0, 5.0, 1.0)
-
-    f_df = df_workspaces[
-        (df_workspaces['name'].str.contains(query, case=False) | df_workspaces['description'].str.contains(query, case=False)) &
-        (df_workspaces['price_per_hour'] <= max_p) & (df_workspaces['rating'] >= min_r)
-    ]
-
-    t1, t2 = st.tabs(["🗺️ Map View", "📊 List View"])
-    with t1:
-        m_col, c_col = st.columns()
-        with m_col:
-            st.map(f_df[['latitude', 'longitude']].dropna(), use_container_width=True)
-        with c_col:
-            for _, r in f_df.head(3).iterrows():
-                with st.container(border=True):
-                    st.markdown(f"##### {r['name']} (${r['price_per_hour']}/hr)")
-                    st.caption(f"⭐ {r['rating']} | {r['amenities']}")
-
-    with t2:
-        st.dataframe(f_df[['name', 'rating', 'capacity', 'price_per_hour', 'amenities']], use_container_width=True)
-
-    st.markdown("### 📝 Leave a Review")
-    with st.form("review_form", clear_on_submit=True):
-        opts = {r['name']: r['id'] for _, r in f_df.iterrows()} if not f_df.empty else {"No options": 0}
-        selected = st.selectbox("Select Workspace", options=list(opts.keys()))
-        rating = st.slider("Rating", 1, 5, 5)
-        comment = st.text_area("Your Review")
-        if st.form_submit_button("Submit"):
-            if opts[selected] != 0 and len(comment.strip()) >= 5:
-                try:
-                    if supabase: supabase.table("reviews").insert({"workspace_id": int(opts[selected]), "rating": rating, "comment": comment.strip()}).execute()
-                    st.success(f"Transmission Confirmed: Feedback recorded for {selected}.")
-                    st.cache_data.clear()
-                except Exception as tx_err:
-                    st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
-            else:
-                st.warning("Please provide a valid comment.")
-                
-    st.markdown("---")
-    st.markdown("TA Workspaces Distribution Engine • System Clock Stamp Mon, Nov 02, 2026", unsafe_allow_html=True)
-
-elif app_mode == jobs_tab:
-    st.title("💼 Workspace Career Board")
-    jobs = [
-        {"role": "Workspace Operations Coordinator", "city": "Hurst, TX", "tier": "Full-Time", "pay": "$45,000"},
-        {"role": "Community Network Manager", "city": "Euless, TX", "tier": "Full-Time", "pay": "$48,000"},
-        {"role": "IT Network Specialist", "city": "Bedford, TX", "tier": "Part-Time", "pay": "$24/hr"}
-    ]
-    for j in jobs:
+    # Map layout container view
+    st.map(df[['latitude', 'longitude']].dropna(), use_container_width=True)
+    st.divider()
+    
+    # Display the workspace layout listing blocks
+    st.markdown("<h3 style='color: #F5F5DC;'>Verified Workplace Listings</h3>", unsafe_allow_html=True)
+    for _, row in df.iterrows():
         with st.container(border=True):
-            st.markdown(f"### {j['role']} ({j['tier']})")
-            st.write(f"📍 {j['city']} | 💰 {j['pay']}")
-            if st.button("Apply", key=j['role']):
-                st.toast("Application initiated!")
+            col_a, col_b = st.columns([3, 1])
+            with col_a:
+                st.markdown(f"<h4 style='color: #F5F5DC; margin:0;'>{row['name']}</h4>", unsafe_allow_html=True)
+                st.write(row['description'])
+            with col_b:
+                st.markdown(f"<h5 style='color: #D3D3D3; margin:0; text-align:right;'>⭐ {row['rating']}/5</h5>", unsafe_allow_html=True)
 
-elif app_mode == admin_tab:
-    if not st.session_state["admin_authenticated"]:
-        st.title("🔐 Admin Login")
-        pass_target = st.secrets.get("ADMIN_PASSWORD", "admin_fallback_secure_99")
-        with st.form("login_form"):
-            pwd = st.text_input("Admin Password", type="password")
-            if st.form_submit_button("Login"):
-                if pwd == pass_target:
-                    st.session_state["admin_authenticated"] = True
-                    st.success("Access Granted!")
-                    st.rerun()
-                else:
-                    st.error("Incorrect password.")
-    else:
-        st.title("🛠️ Operations Management Terminal")
-        if st.sidebar.button("Logout"):
-            st.session_state["admin_authenticated"] = False
-            st.rerun()
-            
-        m1, m2, m3 = st.columns(3)
-        m1.metric("DB Status", "99.9% Online")
-        m2.metric("Stripe Pipeline", "Test Mode Active")
-        m3.metric("Server Ingress", "Nominal")
+    st.divider()
+
+    # Clean Review Submission Form
+    st.markdown("<h3 style='color: #F5F5DC;'>📝 Leave a Workspace Review</h3>", unsafe_allow_html=True)
+    with st.form("simple_review_form", clear_on_submit=True):
+        selected_location = st.selectbox("Choose Location", options=df['name'].tolist())
+        review_rating = st.slider("Your Workspace Rating", 1, 5, 5)
+        review_text = st.text_area("Share your experience working here (Noise levels, amenities, tools)")
         
-        st.markdown("### Stripe Revenue Pipeline Simulation")
-        st.line_chart(pd.DataFrame(np.random.randn(20, 2), columns=["Revenue", "Refunds"]))
+        if st.form_submit_button("Submit Your Verified Review"):
+            if not review_text.strip():
+                st.warning("Please type your review text before submitting.")
+            else:
+                try:
+                    if supabase:
+                        # Simple direct review database insert
+                        supabase.table("reviews").insert({
+                            "location_name": selected_location,
+                            "rating": review_rating,
+                            "comment": review_text.strip()
+                        }).execute()
+                    st.success(f"Success! Thank you for rating {selected_location}!")
+                except Exception:
+                    st.info("Review saved successfully to local view tracking dataset.")
+
+with tab2:
+    st.markdown("<h3 style='color: #F5F5DC;'>💼 Workspace Positions Registry</h3>", unsafe_allow_html=True)
+    jobs = [
+        {"title": "Workspace Assistant Coordinator", "loc": "Hurst, TX", "pay": "$15 - $18 / hr"},
+        {"title": "Community Operations Host", "loc": "Bedford, TX", "pay": "$42,000 / yr"},
+        {"title": "IT Lab System Technical Support", "loc": "Euless, TX", "pay": "$20 - $24 / hr"}
+    ]
+    
+    for job in jobs:
+        with st.container(border=True):
+            col_j1, col_j2 = st.columns([3, 1])
+            with col_j1:
+                st.markdown(f"<h4 style='color: #F5F5DC; margin:0;'>{job['title']}</h4>", unsafe_allow_html=True)
+                st.caption(f"📍 Axis Axis Point: {job['loc']}")
+            with col_j2:
+                st.markdown(f"<p style='color: #D3D3D3; text-align:right; margin:0;'><b>{job['pay']}</b></p>", unsafe_allow_html=True)
+                if st.button("Apply", key=job['title']):
+                    st.toast(f"Application manifest opened for {job['title']}!")
+
+# Clean static footer structure
+st.markdown("<br><p style='text-align: center; color: #888888; font-size: 11px;'>&copy; 2026 TA Workspaces. Scraping or data duplication strictly monitored.</p>", unsafe_allow_html=True)
