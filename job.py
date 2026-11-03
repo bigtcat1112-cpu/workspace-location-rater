@@ -36,10 +36,10 @@ def load_workspace_registry():
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8234, 32.8440, 32.8370, 32.7555],
+        'latitude': [32.8232, 32.8444, 32.8385, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.5, 4.2, 3.9],
-        'hourly_rate': [12.50, 15.00, 18.00, 10.00],
+        'rating': [4.8, 4.2, 4.5, 3.9],
+        'hourly_rate': [15.00, 12.50, 18.00, 10.00],
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting.',
