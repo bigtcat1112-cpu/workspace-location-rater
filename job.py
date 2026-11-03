@@ -162,7 +162,7 @@ elif menu == "🔒 Admin Panel":
         
         if st.session_state.reviews:
             for idx, r in enumerate(st.session_state.reviews):
-                col1, col2 = st.columns()
+                col1, col2 = st.columns(2)
                 col1.write(f"**{r['company']}** ({r['location']})")
                 if col2.button("Purge Entry", key=f"del_{idx}"):
                     st.session_state.reviews.pop(idx)
