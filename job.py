@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize session state lists with valid empty structures
+# Initialize system state engines to hold memory across clicks
 if "admin_mode_active" not in st.session_state:
     st.session_state["admin_mode_active"] = False
 if "subscription_status" not in st.session_state:
@@ -32,17 +32,16 @@ admin_view = "🔐 Admin Control Grid"
 app_route = st.sidebar.radio("Navigation Control Grid", [explore_view, career_view, sub_view, admin_view])
 
 # ==============================================================================
-# DATA OVERHAUL: EXPLICITLY POPULATED DATAFRAME MATRIX (FIXES LINE 37 CRASH)
+# DATA OVERHAUL: EXPLICITLY POPULATED DATAFRAME MATRIX (FIXES CRASH)
 # ==============================================================================
 def load_workspace_registry():
-    # OBVIOUS REWRITE UPDATE: Every single column list contains 4 explicit data points. No empty commas or blank indices.
     data_matrix = {
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8235, 32.8440, 32.8371, 32.7555],
+        'latitude': [32.8234, 32.8441, 32.8398, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.2, 4.6, 4.0],
-        'hourly_rate': [12.50, 15.00, 18.50, 10.00],
+        'rating': [4.8, 4.2, 4.6, 3.9],
+        'hourly_rate': [12.50, 15.00, 22.00, 9.00],
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting.',
@@ -121,7 +120,7 @@ elif app_route == career_view:
             j_col1, j_col2 = st.columns(2)
             with j_col1:
                 st.markdown(f"### {job['role']}")
-                st.write(f"📍 Axis Axis Point: {job['city']} | Setup Tier: **{job['tier']}**")
+                st.write(f"📍 Axis Point: {job['city']} | Setup Tier: **{job['tier']}**")
             with j_col2:
                 st.markdown(f"<h4 style='text-align:right;'>{job['pay']}</h4>", unsafe_allow_html=True)
                 if st.button("Apply Instantly", key=job['role']):
@@ -191,10 +190,6 @@ elif app_route == admin_view:
         st.markdown("### Simulated Processing Revenue Metric Flow Charts")
         st.line_chart(pd.DataFrame(np.random.randn(15, 2), columns=["Pipeline Revenue Stream", "Infrastructure Overhead"]))
 
-# ==============================================================================
-# PREMIUM EXCLUSIVE FOOTER: INTELLECTUAL PROPERTY NOTICE
-
-==============================================================================
-
+# Global Footer Component with Anti-Scraping / Legal Copyright Safeguard
 st.divider()
-st.markdown("© 2026 TA Workspaces. All rights reserved. Automated scraping, data harvesting, extraction, crawling, or parsing of contents on this dashboard is explicitly banned under terms of service monitoring protocols.", unsafe_allow_html=True)
+st.markdown("© 2026 TA Workspaces. All rights reserved. Automated scraping, extraction, crawling, or parsing of contents on this website is explicitly banned under tracking terms of service monitoring protocols.", unsafe_allow_html=True)
