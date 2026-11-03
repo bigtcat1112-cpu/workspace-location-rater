@@ -159,11 +159,13 @@ elif menu == "📝 Rate a Workspace":
             lon_input = st.number_input("Longitude", value=-97.3, format="%.4f")
             
         st.markdown("### Quality Metrics")
-        noise_insulation = st.slider("Noise Insulation", 1, 5, 3)
-        internet_speed = st.slider("Internet Speed Quality", 1, 5, 4)
-        ergonomic_comfort = st.slider("Ergonomic Comfort (Chairs/Desks)", 1, 5, 3)
-        employee_treatment = st.slider("Staff & Employee Treatment", 1, 5, 4)
-        desk_setup = st.slider("Desk Space & Power Setup", 1, 5, 3)
+        st.markdown("### Quality Metrics")
+        noise_insulation = st.slider("Commute Quality", 1, 5, 3)
+        internet_speed = st.slider("Management Quality", 1, 5, 4)
+        ergonomic_comfort = st.slider("Stress Levels (5 = Low Stress)", 1, 5, 3)
+        employee_treatment = st.slider("Team & Employee Treatment", 1, 5, 4)
+        desk_setup = st.slider("Pay & Benefits", 1, 5, 3)
+
         
         submit_btn = st.form_submit_button("Submit Application Rating")
         
