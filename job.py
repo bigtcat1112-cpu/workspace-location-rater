@@ -36,9 +36,9 @@ def load_workspace_registry():
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8235, 32.8440, 32.8371, 32.7555],
+        'latitude': [32.8234, 32.8443, 32.8371, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.7, 4.5, 4.8, 4.2],
+        'rating': [4.8, 4.5, 4.2, 4.6],
         'hourly_rate': [12.50, 15.00, 18.50, 10.00],
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
         'description': [
@@ -187,6 +187,6 @@ elif app_route == admin_view:
         st.markdown("### Simulated Processing Revenue Metric Flow Charts")
         st.line_chart(pd.DataFrame(np.random.randn(15, 2), columns=["Pipeline Revenue Stream", "Infrastructure Overhead"]))
 
-# Global Footer Component
+# Global Footer Component with Anti-Scraping / Legal Copyright Safeguard
 st.divider()
-st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>&copy; 2026 TA Workspaces. Automated scraping or background web requests are actively audited under system security policies.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray; font-size: 11px;'>&copy; 2026 TA Workspaces. All rights reserved. Automated scraping, extraction, crawling, or parsing of contents on this website is explicitly banned under tracking terms of service monitoring.</p>", unsafe_allow_html=True)
