@@ -1,223 +1,171 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import time
 
-# ==============================================================================
-# MODULE 1: GLOBAL CONTEXTS & PLATFORM LAYOUT SETUP
-# ==============================================================================
-st.set_page_config(
-    page_title="TA Workspaces | Professional Site Rater",
-    page_icon="🏢",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# -------------------------------------------------------------
+# 1. APPLICATION SETUP & CONFIGURATION
+# -------------------------------------------------------------
+st.set_page_config(page_title="TA Workspaces", layout="wide", initial_sidebar_state="expanded")
 
-# Initialize system state engines safely with fallback primitives
-if "admin_mode_active" not in st.session_state:
-    st.session_state["admin_mode_active"] = False
-if "subscription_status" not in st.session_state:
-    st.session_state["subscription_status"] = "Free Tier"
-if "saved_user_reviews" not in st.session_state:
-    st.session_state["saved_user_reviews"] = list()
-
-# Sidebar Command Layout Panel
-st.sidebar.markdown("# 🚀 TA Workspace Engine")
-st.sidebar.caption("v5.0.0 - Premium Evaluation Suite")
-
-explore_view = "🗺️ Discovery Hub & Map"
-career_view = "💼 Career Board & Rates"
-sub_view = "💳 Subscription Premium"
-admin_view = "🔐 Admin Control Grid"
-
-app_route = st.sidebar.radio("Navigation Control Grid", [explore_view, career_view, sub_view, admin_view])
-
-# ==============================================================================
-# DATA ENGINE GENERATOR
-# ==============================================================================
-def load_workspace_registry():
-    id_list = [1, 2, 3, 4]
-    name_list = ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth']
-    lat_list = [32.8234, 32.8440, 32.8371, 32.7555]
-    lon_list = [-97.1706, -97.1432, -97.0819, -97.3308]
-    rating_list = [4.7, 4.2, 4.9, 3.8]
-    rate_list = [12.50, 15.00, 22.00, 9.00]
-    amenities_list = ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber']
-    desc_list = [
-        'Inspiring shared spaces close to home with high-velocity natural lighting.',
-        'High-speed fiber internet infrastructure with soundproof phone booths.',
-        'Premium executive office structures optimized for scaling corporate setups.',
-        'Budget-friendly open-plan flex desks for builders and freelancers.'
+# Initialize session states for data persistence
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "subscribed" not in st.session_state:
+    st.session_state.subscribed = False
+if "reviews" not in st.session_state:
+    # Seed initial workspace data with primitive types to eliminate DataFrame formatting errors
+    st.session_state.reviews = [
+        {
+            "company": "TechSpace Downtown",
+            "location": "Dallas, TX",
+            "noise": 4, "internet": 5, "comfort": 4, "treatment": 5, "desk": 4,
+            "lat": 32.7767, "lon": -96.7970
+        },
+        {
+            "company": "CoWork Central",
+            "location": "Fort Worth, TX",
+            "noise": 3, "internet": 4, "comfort": 5, "treatment": 4, "desk": 5,
+            "lat": 32.7555, "lon": -97.3308
+        }
     ]
+
+# -------------------------------------------------------------
+# 2. SIDEBAR NAVIGATION & SUBSCRIPTION GATEWAY
+# -------------------------------------------------------------
+st.sidebar.title("🏢 TA Workspaces")
+menu = st.sidebar.radio("Navigation", ["🔍 Discover Workspaces", "📝 Rate a Workspace", "🔒 Admin Panel"])
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("💎 Premium Access")
+if st.session_state.subscribed:
+    st.sidebar.success("Premium Active ($20/mo)")
+    if st.sidebar.button("Cancel Subscription"):
+        st.session_state.subscribed = False
+        st.rerun()
+else:
+    st.sidebar.info("Unlock advanced filter tools.")
+    if st.sidebar.button("Subscribe Now ($20/mo)"):
+        st.session_state.subscribed = True
+        st.rerun()
+
+# -------------------------------------------------------------
+# 3. CORE FEATURES
+# -------------------------------------------------------------
+
+# FEATURE A: DISCOVER WORKSPACES (WITH MAP)
+if menu == "🔍 Discover Workspaces":
+    st.title("🔍 Discover Rated Workspaces")
     
-    data_matrix = {
-        "id": id_list,
-        "name": name_list,
-        "latitude": lat_list,
-        "longitude": lon_list,
-        "rating": rating_list,
-        "hourly_rate": rate_list,
-        "amenities": amenities_list,
-        "description": desc_list
-    }
-    return pd.DataFrame(data_matrix)
+    # Premium Filtering Tool
+    if st.session_state.subscribed:
+        min_internet = st.slider("Minimum Internet Speed Rating", 1, 5, 1)
+        filtered_list = [r for r in st.session_state.reviews if r["internet"] >= min_internet]
+    else:
+        filtered_list = st.session_state.reviews
+        st.caption("💡 *Tip: Subscribe to premium in the sidebar to filter workspaces by speed metrics.*")
 
-df_workspaces = load_workspace_registry()
+    # Safe DataFrame conversion using clean primitive lists
+    if filtered_list:
+        df = pd.DataFrame(filtered_list)
+        
+        # Calculate overall score dynamically for display
+        df["Overall Score"] = df[["noise", "internet", "comfort", "treatment", "desk"]].mean(axis=1).round(1)
+        
+        # Visual Interactive Map
+        st.subheader("📍 Nearby Locations")
+        st.map(df[["lat", "lon"]])
+        
+        # Data Grid Layout
+        st.subheader("📋 Workspace Directory")
+        st.dataframe(
+            df[["company", "location", "Overall Score", "noise", "internet", "comfort", "treatment", "desk"]],
+            use_container_width=True
+        )
+    else:
+        st.info("No workspaces match your filtering criteria.")
 
-# ==============================================================================
-# ENGINE VIEW A: 🗺️ DISCOVERY MAP & MULTI-SLIDER COMPREHENSIVE RATER
-# ==============================================================================
-if app_route == explore_view:
-    st.title("🏢 Workspace Discovery Platform")
-    st.markdown("---")
-
-    map_col, listings_col = st.columns(2)
+# FEATURE B: COMPREHENSIVE WORKSPACE RATING FORM
+elif menu == "📝 Rate a Workspace":
+    st.title("📝 Submit a New Workspace Rating")
     
-    with map_col:
-        st.markdown("### Interactive Density Mapping Vector")
-        st.map(df_workspaces[["latitude", "longitude"]].dropna(), use_container_width=True)
+    with st.form("rating_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            company_name = st.text_input("Company Name").strip()
+            location_text = st.text_input("City, State (e.g., Austin, TX)").strip()
+        with col2:
+            lat_input = st.number_input("Latitude", value=32.7, format="%.4f")
+            lon_input = st.number_input("Longitude", value=-97.3, format="%.4f")
+            
+        st.markdown("### Quality Metrics")
+        noise_insulation = st.slider("Noise Insulation", 1, 5, 3)
+        internet_speed = st.slider("Internet Speed Quality", 1, 5, 4)
+        ergonomic_comfort = st.slider("Ergonomic Comfort (Chairs/Desks)", 1, 5, 3)
+        employee_treatment = st.slider("Staff & Employee Treatment", 1, 5, 4)
+        desk_setup = st.slider("Desk Space & Power Setup", 1, 5, 3)
         
-    with listings_col:
-        st.markdown("### Verified Workplace Profiles")
-        for _, row in df_workspaces.iterrows():
-            with st.container(border=True):
-                head_1, head_2 = st.columns(2)
-                head_1.markdown(f"#### {row['name']}")
-                head_2.markdown(f"<p style='text-align:right;'>⭐ {row['rating']}/5</p>", unsafe_allow_html=True)
-                st.write(f"*{row['description']}*")
-                st.caption(f"Inclusions: {row['amenities']} | Base Price: ${row['hourly_rate']:.2f}/hr")
-
-    st.markdown("---")
-    st.markdown("### 📝 Granular Workspace & Corporate Quality Evaluation")
-    
-    with st.form("comprehensive_review_form", clear_on_submit=True):
-        st.markdown("##### 📍 Location & Corporate Parameters")
-        c_col1, c_col2, c_col3 = st.columns(3)
-        target_hub = c_col1.selectbox("Select Workspace Facility", options=df_workspaces["name"].tolist())
-        company_name = c_col2.text_input("Employer / Company Name", placeholder="e.g. Acme Tech Corp")
-        city_location = c_col3.text_input("Exact City / Branch Location", placeholder="e.g. Hurst, TX")
+        submit_btn = st.form_submit_button("Submit Application Rating")
         
-        st.markdown("##### 👥 Workforce Metrics")
-        count_col1, count_col2 = st.columns(2)
-        employee_count = count_col1.number_input("Total Employee Count at this Facility", min_value=1, max_value=5000, value=25)
-        got_job = count_col2.checkbox("Check here if you successfully secured a job position here!")
-        
-        st.markdown("##### 📊 Workspace Quality Metrics (The 5 Core Sliders)")
-        s_col1, s_col2 = st.columns(2)
-        noise_level = s_col1.slider("🔇 Productivity Noise Insulation (1=Loud, 5=Quiet)", 1, 5, 4)
-        net_speed = s_col2.slider("⚡ Internet & Fiber Network Speed (1=Laggy, 5=Blazing)", 1, 5, 5)
-        seat_comfort = s_col1.slider("🪑 Seating & Ergonomic Comfort (1=Uncomfortable, 5=Premium)", 1, 5, 4)
-        treatment = s_col2.slider("🤝 Employee Treatment & Culture (1=Poor, 5=Excellent)", 1, 5, 5)
-        desk_setup = st.slider("🖥️ Desk Space & Hardware Setup Quality (1=Cramped, 5=Spacious Dual-Monitors)", 1, 5, 4)
-        
-        st.markdown("##### 💬 Detailed Evaluation")
-        amenities_comment = st.text_area("Elaborate on hardware tools, team environment, or onsite workstation infrastructure constraints", height=100)
-        
-        if st.form_submit_button("Lock & Transmit Deep Evaluation Package"):
-            if not company_name.strip() or not city_location.strip() or not amenities_comment.strip():
-                st.warning("Validation Failure: Please complete Company Name, Location, and Detailed Comment parameters.")
+        if submit_btn:
+            if company_name and location_text:
+                # Appending directly as a primitive dictionary structure to avoid parsing issues
+                st.session_state.reviews.append({
+                    "company": company_name,
+                    "location": location_text,
+                    "noise": int(noise_insulation),
+                    "internet": int(internet_speed),
+                    "comfort": int(ergonomic_comfort),
+                    "treatment": int(employee_treatment),
+                    "desk": int(desk_setup),
+                    "lat": float(lat_input),
+                    "lon": float(lon_input)
+                })
+                st.success(f"Successfully added review for '{company_name}'!")
             else:
-                computed_aggregate = float(np.mean([noise_level, net_speed, seat_comfort, treatment, desk_setup]))
-                
-                review_packet = {
-                    "Workspace Hub": target_hub,
-                    "Company / Employer": company_name.strip(),
-                    "City Scope": city_location.strip(),
-                    "Employee Count": int(employee_count),
-                    "Hired Status": got_job,
-                    "Noise Insulation Rating": noise_level,
-                    "Network Speed Rating": net_speed,
-                    "Ergonomic Comfort Rating": seat_comfort,
-                    "Culture Treatment Rating": treatment,
-                    "Desk Quality Rating": desk_setup,
-                    "Calculated Mean Score": f"⭐ {computed_aggregate:.2f}/5",
-                    "Detailed Remarks": amenities_comment.strip()
-                }
-                st.session_state["saved_user_reviews"].append(review_packet)
-                st.success(f"Transmission Confirmed: Granular corporate evaluation metrics logged for {company_name}!")
+                st.error("Please completely fill out both the Company Name and Location text blocks.")
 
-# ==============================================================================
-# ENGINE VIEW B: 💼 JOB BOARD & RATE TRACKER
-# ==============================================================================
-elif app_route == career_view:
-    st.title("💼 Workspace Career Board & Employee Metrics")
-    st.markdown("---")
+# FEATURE C: ADMIN MANAGEMENT PORTAL
+elif menu == "🔒 Admin Panel":
+    st.title("🔒 Terminal Control Panel")
     
-    jobs_list = [
-        {"role": "Workspace Operations Coordinator", "city": "Hurst, TX", "tier": "Full-Time", "pay": "$45,000 / yr"},
-        {"role": "Community Network Manager", "city": "Euless, TX", "tier": "Full-Time", "pay": "$48,000 / yr"},
-        {"role": "IT Network Support Specialist", "city": "Bedford, TX", "tier": "Part-Time", "pay": "$24.00 / hr"}
-    ]
-    
-    for job in jobs_list:
-        with st.container(border=True):
-            j_col1, j_col2 = st.columns(2)
-            with j_col1:
-                st.markdown(f"### {job['role']}")
-                st.write(f"📍 Axis Point: {job['city']} | Setup Tier: **{job['tier']}**")
-            with j_col2:
-                st.markdown(f"<h4 style='text-align:right;'>{job['pay']}</h4>", unsafe_allow_html=True)
-                if st.button("Apply Instantly", key=job["role"]):
-                    st.toast(f"Application workflow tracking sequence opened for {job['role']}!")
-
-# ==============================================================================
-# ENGINE VIEW C: 💳 PREMIUM SUBSCRIPTION INTEGRATION GATEWAY
-# ==============================================================================
-elif app_route == sub_view:
-    st.title("💳 Premium Membership Pipeline Portal")
-    st.markdown("---")
-    
-    st.write(f"Current Membership Standing Class: **{st.session_state['subscription_status']}**")
-    
-    with st.container(border=True):
-        st.markdown("### 🌟 TA Workspaces Pro Core Plan")
-        st.markdown("Unlock advanced geographic filters, feature ratings tracking maps, and direct employee workplace dashboards.")
-        st.markdown("#### **$20.00 / month**")
-        st.caption("Secure multi-device processing checkout router enabled via dynamic API parameters dashboard bindings.")
+    if not st.session_state.authenticated:
+        # Resolving credentials via Streamlit cloud configurations safely
+        secret_pass = st.secrets.get("ADMIN_PASSWORD", "fallback_admin123")
+        password_attempt = st.text_input("Enter Admin Access Key", type="password")
         
-        if st.session_state["subscription_status"] == "Free Tier":
-            if st.button("Initialize Stripe Pro Checkout"):
-                st.session_state["subscription_status"] = "Premium Pro Member"
-                st.balloons()
-                st.success("Payment Sequence Complete! Pro features unlocked across your account.")
+        if st.button("Authenticate"):
+            if password_attempt == secret_pass:
+                st.session_state.authenticated = True
+                st.success("Access Granted.")
                 st.rerun()
+            else:
+                st.error("Invalid key signature. Verify configurations or check environment secrets.")
+    else:
+        st.sidebar.button("Log Out Admin", on_click=lambda: st.session_state.update({"authenticated": False}))
+        st.subheader("🛠 Database Administration Mode")
+        
+        if st.session_state.reviews:
+            for idx, r in enumerate(st.session_state.reviews):
+                col1, col2 = st.columns([4, 1])
+                col1.write(f"**{r['company']}** ({r['location']})")
+                if col2.button("Purge Entry", key=f"del_{idx}"):
+                    st.session_state.reviews.pop(idx)
+                    st.success("Entry removed from storage pool.")
+                    st.rerun()
         else:
-            st.info("✨ Thank you! Your Professional Subscription is fully active.")
-            if st.button("Downgrade to Standard Account"):
-                st.session_state["subscription_status"] = "Free Tier"
-                st.rerun()
+            st.info("The application review cache is completely clean.")
 
-# ==============================================================================
-# ENGINE VIEW D: 🔐 SECURITY CONTROL OPERATIONS PORTAL (ADMIN)
-# ==============================================================================
-elif app_route == admin_view:
-    if not st.session_state["admin_mode_active"]:
-st.title("🔐 Administration Authorization Portal")
-system_key = st.secrets.get("ADMIN_PASSWORD", "admin_fallback_secure_99")
-with st.form("admin_security_override_form"):
-entered_pass = st.text_input("Input Core System System Admin Master Key", type="password")
-if st.form_submit_button("Authenticate Terminal Sockets"):
-if entered_pass == system_key:
-st.session_state["admin_mode_active"] = True
-st.success("Cryptographic validation tokens verified.")
-st.rerun()
-else:
-st.error("Access Mismatch: Security signature rejection framework thrown.")
-else:
-st.title("🛠️ System Operations Management Terminal Dashboard")
-if st.sidebar.button("De-Authorize Terminal Sockets", type="primary"):
-st.session_state["admin_mode_active"] = False
-st.rerun()
-m1, m2, m3 = st.columns(3)
-m1.metric("Database Access Health", "99.96% Verified")
-m2.metric("Ecosystem Pipeline Tracked Revenue", f"$ {len(st.session_state.get('saved_user_reviews', list())) * 20}.00 MRR")
-m3.metric("Ingress Tracking Traffic Sockets", "Nominal Levels")
-st.markdown("### Active Custom User Feedback Submissions Log Ledger")
-if st.session_state["saved_user_reviews"]:
-st.dataframe(pd.DataFrame(st.session_state["saved_user_reviews"]), use_container_width=True)
-else:
-st.info("No custom user feedback review mutations submitted during this execution thread.")
-st.markdown("### Simulated Processing Revenue Metric Flow Charts")
-st.line_chart(pd.DataFrame(np.random.randn(15, 2), columns=["Pipeline Revenue Stream", "Infrastructure Overhead"]))
-st.divider()
-st.markdown("© 2026 TA Workspaces. All rights reserved. Automated scraping, extraction, crawling, or parsing of contents on this website is explicitly banned under tracking terms of service monitoring protocols.", unsafe_allow_html=True)
+# -------------------------------------------------------------
+# 4. LEGAL & SECURITY ANTI-SCRAPING FOOTER NOTICE
+# -------------------------------------------------------------
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: grey; font-size: 0.8em;'>
+        © 2026 TA Workspaces. All Rights Reserved. <br>
+        🔒 Anti-Scraping Shield Active: Automated collection, data harvesting, processing, or structural cloning 
+        of this application's layout modules, rating definitions, or stored caches is strictly prohibited by law.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
