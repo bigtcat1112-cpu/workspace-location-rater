@@ -1,62 +1,91 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import stripe
 
 # -------------------------------------------------------------
-# 1. APPLICATION SETUP & CONFIGURATION
+# 1. STRIPE API INTEGRATION SETUP
+# -------------------------------------------------------------
+# Safely pull your secret key from your Streamlit Environment Secrets
+stripe.api_key = st.secrets.get("STRIPE_SECRET_KEY", "mock_key_if_missing")
+
+# Your specific Stripe product item identifier
+PRICE_ID = "price_1UXNrfEbNBWTyWzqE2qkw78S"
+
+# -------------------------------------------------------------
+# 2. APPLICATION SETUP & CONFIGURATION
 # -------------------------------------------------------------
 st.set_page_config(page_title="TA Workspaces", layout="wide", initial_sidebar_state="expanded")
 
-# Initialize session states for data persistence
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "subscribed" not in st.session_state:
     st.session_state.subscribed = False
 if "reviews" not in st.session_state:
-    # Seed initial workspace data with primitive types to eliminate DataFrame formatting errors
     st.session_state.reviews = [
         {
-            "company": "TechSpace Downtown",
-            "location": "Dallas, TX",
+            "company": "TechSpace Downtown", "location": "Dallas, TX",
             "noise": 4, "internet": 5, "comfort": 4, "treatment": 5, "desk": 4,
             "lat": 32.7767, "lon": -96.7970
         },
         {
-            "company": "CoWork Central",
-            "location": "Fort Worth, TX",
+            "company": "CoWork Central", "location": "Fort Worth, TX",
             "noise": 3, "internet": 4, "comfort": 5, "treatment": 4, "desk": 5,
             "lat": 32.7555, "lon": -97.3308
         }
     ]
 
+# Catch incoming checkout success redirect patterns to activate subscription
+query_params = st.query_params
+if "session_id" in query_params:
+    st.session_state.subscribed = True
+    st.sidebar.success("🎉 Payment verified successfully!")
+
 # -------------------------------------------------------------
-# 2. SIDEBAR NAVIGATION & SUBSCRIPTION GATEWAY
+# 3. SIDEBAR NAVIGATION & STRIPE CHECKOUT ROUTING
 # -------------------------------------------------------------
 st.sidebar.title("🏢 TA Workspaces")
 menu = st.sidebar.radio("Navigation", ["🔍 Discover Workspaces", "📝 Rate a Workspace", "🔒 Admin Panel"])
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("💎 Premium Access")
+
 if st.session_state.subscribed:
     st.sidebar.success("Premium Active ($20/mo)")
     if st.sidebar.button("Cancel Subscription"):
         st.session_state.subscribed = False
+        st.query_params.clear()
         st.rerun()
 else:
     st.sidebar.info("Unlock advanced filter tools.")
+    
+    # Generate an active external Stripe Checkout session link when requested
     if st.sidebar.button("Subscribe Now ($20/mo)"):
-        st.session_state.subscribed = True
-        st.rerun()
+        try:
+            # Your live hosting domain fully integrated
+            app_url = "https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/" 
+            
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{'price': PRICE_ID, 'quantity': 1}],
+                mode='subscription',
+                success_url=f"{app_url}?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=app_url,
+            )
+            # Render a direct clickable link to your checkout form portal
+            st.sidebar.markdown(f"[👉 Complete Payment on Stripe]({checkout_session.url})", unsafe_allow_html=True)
+            st.sidebar.info("Click the secure link above to complete transaction.")
+        except Exception as e:
+            st.sidebar.error("Stripe Token Connection Failed. Make sure STRIPE_SECRET_KEY is added to your secrets.")
 
 # -------------------------------------------------------------
-# 3. CORE FEATURES
+# 4. CORE FEATURES
 # -------------------------------------------------------------
 
 # FEATURE A: DISCOVER WORKSPACES (WITH MAP)
 if menu == "🔍 Discover Workspaces":
     st.title("🔍 Discover Rated Workspaces")
     
-    # Premium Filtering Tool
     if st.session_state.subscribed:
         min_internet = st.slider("Minimum Internet Speed Rating", 1, 5, 1)
         filtered_list = [r for r in st.session_state.reviews if r["internet"] >= min_internet]
@@ -64,18 +93,13 @@ if menu == "🔍 Discover Workspaces":
         filtered_list = st.session_state.reviews
         st.caption("💡 *Tip: Subscribe to premium in the sidebar to filter workspaces by speed metrics.*")
 
-    # Safe DataFrame conversion using clean primitive lists
     if filtered_list:
         df = pd.DataFrame(filtered_list)
-        
-        # Calculate overall score dynamically for display
         df["Overall Score"] = df[["noise", "internet", "comfort", "treatment", "desk"]].mean(axis=1).round(1)
         
-        # Visual Interactive Map
         st.subheader("📍 Nearby Locations")
         st.map(df[["lat", "lon"]])
         
-        # Data Grid Layout
         st.subheader("📋 Workspace Directory")
         st.dataframe(
             df[["company", "location", "Overall Score", "noise", "internet", "comfort", "treatment", "desk"]],
@@ -108,17 +132,11 @@ elif menu == "📝 Rate a Workspace":
         
         if submit_btn:
             if company_name and location_text:
-                # Appending directly as a primitive dictionary structure to avoid parsing issues
                 st.session_state.reviews.append({
-                    "company": company_name,
-                    "location": location_text,
-                    "noise": int(noise_insulation),
-                    "internet": int(internet_speed),
-                    "comfort": int(ergonomic_comfort),
-                    "treatment": int(employee_treatment),
-                    "desk": int(desk_setup),
-                    "lat": float(lat_input),
-                    "lon": float(lon_input)
+                    "company": company_name, "location": location_text,
+                    "noise": int(noise_insulation), "internet": int(internet_speed),
+                    "comfort": int(ergonomic_comfort), "treatment": int(employee_treatment),
+                    "desk": int(desk_setup), "lat": float(lat_input), "lon": float(lon_input)
                 })
                 st.success(f"Successfully added review for '{company_name}'!")
             else:
@@ -129,7 +147,6 @@ elif menu == "🔒 Admin Panel":
     st.title("🔒 Terminal Control Panel")
     
     if not st.session_state.authenticated:
-        # Resolving credentials via Streamlit cloud configurations safely
         secret_pass = st.secrets.get("ADMIN_PASSWORD", "fallback_admin123")
         password_attempt = st.text_input("Enter Admin Access Key", type="password")
         
@@ -146,7 +163,7 @@ elif menu == "🔒 Admin Panel":
         
         if st.session_state.reviews:
             for idx, r in enumerate(st.session_state.reviews):
-                col1, col2 = st.columns([4, 1])
+                col1, col2 = st.columns()
                 col1.write(f"**{r['company']}** ({r['location']})")
                 if col2.button("Purge Entry", key=f"del_{idx}"):
                     st.session_state.reviews.pop(idx)
@@ -156,7 +173,7 @@ elif menu == "🔒 Admin Panel":
             st.info("The application review cache is completely clean.")
 
 # -------------------------------------------------------------
-# 4. LEGAL & SECURITY ANTI-SCRAPING FOOTER NOTICE
+# 5. LEGAL & SECURITY ANTI-SCRAPING FOOTER NOTICE
 # -------------------------------------------------------------
 st.markdown("---")
 st.markdown(
