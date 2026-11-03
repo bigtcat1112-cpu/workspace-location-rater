@@ -36,18 +36,18 @@ app_route = st.sidebar.radio("Navigation Control Grid", [explore_view, career_vi
 # ==============================================================================
 def load_workspace_registry():
     data_matrix = {
-        'id':,
-        'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8234, 32.8441, 32.8398, 32.7555],
-        'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.2, 4.6, 3.9],
-        'hourly_rate': [12.50, 15.00, 22.00, 9.00],
-        'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
-        'description': [
-            'Inspiring shared spaces close to home with high-velocity natural lighting.',
-            'High-speed fiber internet infrastructure with soundproof phone booths.',
-            'Premium executive office structures optimized for scaling corporate setups.',
-            'Budget-friendly open-plan flex desks for builders and freelancers.'
+        "id":,
+        "name": ["Hurst Creative Hub", "Bedford Tech Lounge", "Euless Executive Suites", "Cowork Fort Worth"],
+        "latitude": [32.8234, 32.8440, 32.8371, 32.7555],
+        "longitude": [-97.1706, -97.1432, -97.0819, -97.3308],
+        "rating": [4.8, 4.2, 4.6, 3.9],
+        "hourly_rate": [12.50, 10.00, 18.50, 8.00],
+        "amenities": ["Fiber, Coffee, Pods", "Fiber, Monitors", "24/7 Access, Coffee", "Parking, Fiber"],
+        "description": [
+            "Inspiring shared spaces close to home with high-velocity natural lighting.",
+            "High-speed fiber internet infrastructure with soundproof phone booths.",
+            "Premium executive office structures optimized for scaling corporate setups.",
+            "Budget-friendly open-plan flex desks for builders and freelancers."
         ]
     }
     return pd.DataFrame(data_matrix)
@@ -66,7 +66,7 @@ if app_route == explore_view:
     
     with map_col:
         st.markdown("### Interactive Density Mapping Vector")
-        st.map(df_workspaces[['latitude', 'longitude']].dropna(), use_container_width=True)
+        st.map(df_workspaces[["latitude", "longitude"]].dropna(), use_container_width=True)
         
     with listings_col:
         st.markdown("### Verified Workplace Profiles")
@@ -83,10 +83,10 @@ if app_route == explore_view:
     
     with st.form("workspace_review_form", clear_on_submit=True):
         f_col1, f_col2 = st.columns(2)
-        target_hub = f_col1.selectbox("Select Target Facility Location Axis", options=df_workspaces['name'].tolist())
+        target_hub = f_col1.selectbox("Select Target Facility Location Axis", options=df_workspaces["name"].tolist())
         work_quality = f_col2.slider("Overall Work Quality Level", 1, 5, 5)
         
-        amenities_comment = st.text_area("Share your specific concerns or comments (Internet quality, employee treatment, exact station details)")
+        amenities_comment = st.text_area("Share your specific concerns or comments (Internet quality, environment, noise levels)")
         got_job = st.checkbox("I Got the Job at this Workspace Location!")
         
         if st.form_submit_button("Lock & Transmit Review Package"):
@@ -123,7 +123,7 @@ elif app_route == career_view:
                 st.write(f"📍 Axis Point: {job['city']} | Setup Tier: **{job['tier']}**")
             with j_col2:
                 st.markdown(f"<h4 style='text-align:right;'>{job['pay']}</h4>", unsafe_allow_html=True)
-                if st.button("Apply Instantly", key=job['role']):
+                if st.button("Apply Instantly", key=job["role"]):
                     st.toast(f"Application workflow tracking sequence opened for {job['role']}!")
 
 # ==============================================================================
