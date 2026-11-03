@@ -204,16 +204,26 @@ if app_mode == explore_tab:
                         }
                         if supabase:
                             supabase.table("reviews").insert(mutation_payload).execute()
-              st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
-     st.cache_data.clear()
-          except Exception as tx_err:
-            st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}") 
-             with review_layout_col2:
-           st.markdown("#### User Diagnostic Metrics Summary")
-         st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
-         if st.session_state['user_search_history']:
-    st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
-    st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
+                    try:
+                        mutation_payload = {
+                            "workspace_id": int(target_id),
+                            "rating": int(score_slider),
+                            "comment": str(feedback_corpus).strip()
+                        }
+                        if supabase:
+                            supabase.table("reviews").insert(mutation_payload).execute()
+                        st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
+                        st.cache_data.clear()
+                    except Exception as tx_err:
+                        st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
+
+    with review_layout_col2:
+        st.markdown("#### User Diagnostic Metrics Summary")
+        st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
+        if st.session_state['user_search_history']:
+            st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
+        st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
+
     # Platform Footer
     st.markdown("---")
     st.markdown("TA Workspaces Enterprise Distribution Platform Engine • System Clock Stamp Mon, Nov 02, 2026 • Strict Scraping, Data Harvesting, or AI Crawling Implementations are prohibited under TOS Security Codes.", unsafe_allow_html=True)
