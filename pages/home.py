@@ -54,12 +54,12 @@ def get_mock_datastore() -> pd.DataFrame:
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8235, 32.8440, 32.8370, 32.7555],
+        'latitude': [32.8234, 32.8443, 32.8372, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.2, 4.6, 4.0],
+        'rating': [4.8, 4.2, 4.6, 3.9],
         'capacity':,
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
-        'price_per_hour': [5.50, 7.00, 12.50, 4.00],
+        'price_per_hour': [8.50, 6.00, 12.00, 5.00],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting setups.',
             'High-speed fiber internet infrastructure with soundproof phone booths.',
@@ -204,16 +204,16 @@ if app_mode == explore_tab:
                         }
                         if supabase:
                             supabase.table("reviews").insert(mutation_payload).execute()
-st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
-st.cache_data.clear()
-except Exception as tx_err:
-st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
-with review_layout_col2:
-st.markdown("#### User Diagnostic Metrics Summary")
-st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
-if st.session_state['user_search_history']:
-st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
-st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
-# Platform Footer
-st.markdown("---")
-st.markdown("TA Workspaces Enterprise Distribution Platform Engine • System Clock Stamp Mon, Nov 02, 2026 • Strict Scraping, Data Harvesting, or AI Crawling Implementations are prohibited under TOS Security Codes.", unsafe_allow_html=True)
+              st.success(f"Transmission Confirmed: Feedback recorded for {target_selection}.")
+     st.cache_data.clear()
+          except Exception as tx_err:
+            st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}") 
+             with review_layout_col2:
+           st.markdown("#### User Diagnostic Metrics Summary")
+         st.write(f"Session Query Activity Count: {len(st.session_state['user_search_history'])} queries executed.")
+         if st.session_state['user_search_history']:
+    st.caption(f"Recent search traces: {', '.join(st.session_state['user_search_history'][-3:])}")
+    st.info("💡 Reviews submitted update aggregate rating statistics inside your data arrays every 120 seconds automatically.")
+    # Platform Footer
+    st.markdown("---")
+    st.markdown("TA Workspaces Enterprise Distribution Platform Engine • System Clock Stamp Mon, Nov 02, 2026 • Strict Scraping, Data Harvesting, or AI Crawling Implementations are prohibited under TOS Security Codes.", unsafe_allow_html=True)
