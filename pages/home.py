@@ -54,12 +54,12 @@ def get_mock_datastore() -> pd.DataFrame:
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8234, 32.8443, 32.8372, 32.7555],
+        'latitude': [32.8234, 32.8440, 32.8371, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
         'rating': [4.8, 4.2, 4.6, 3.9],
         'capacity':,
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
-        'price_per_hour': [8.50, 6.00, 12.00, 5.00],
+        'price_per_hour': [12.50, 8.00, 15.00, 6.50],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting setups.',
             'High-speed fiber internet infrastructure with soundproof phone booths.',
@@ -196,14 +196,6 @@ if app_mode == explore_tab:
                 elif len(feedback_corpus.strip()) < 5:
                     st.warning("Validation Failure: Feedback input text parameters are too short.")
                 else:
-                    try:
-                        mutation_payload = {
-                            "workspace_id": int(target_id),
-                            "rating": int(score_slider),
-                            "comment": str(feedback_corpus).strip()
-                        }
-                        if supabase:
-                            supabase.table("reviews").insert(mutation_payload).execute()
                     try:
                         mutation_payload = {
                             "workspace_id": int(target_id),
