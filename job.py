@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import time
 
 # ==============================================================================
 # MODULE 1: GLOBAL CONTEXTS & PLATFORM LAYOUT SETUP
@@ -35,12 +36,12 @@ app_route = st.sidebar.radio("Navigation Control Grid", [explore_view, career_vi
 # DATA ENGINE GENERATOR
 # ==============================================================================
 def load_workspace_registry():
-    id_list = [101, 102, 103, 104]
+    id_list = [1, 2, 3, 4]
     name_list = ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth']
-    lat_list = [32.8234, 32.8443, 32.8396, 32.7555]
+    lat_list = [32.8234, 32.8440, 32.8371, 32.7555]
     lon_list = [-97.1706, -97.1432, -97.0819, -97.3308]
-    rating_list = [4.8, 4.2, 4.6, 3.9]
-    rate_list = [12.50, 15.00, 18.50, 9.00]
+    rating_list = [4.7, 4.2, 4.9, 3.8]
+    rate_list = [12.50, 15.00, 22.00, 9.00]
     amenities_list = ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber']
     desc_list = [
         'Inspiring shared spaces close to home with high-velocity natural lighting.',
@@ -116,7 +117,6 @@ if app_route == explore_view:
             if not company_name.strip() or not city_location.strip() or not amenities_comment.strip():
                 st.warning("Validation Failure: Please complete Company Name, Location, and Detailed Comment parameters.")
             else:
-                # Calculate aggregate mean score from the 5 custom metric sliders
                 computed_aggregate = float(np.mean([noise_level, net_speed, seat_comfort, treatment, desk_setup]))
                 
                 review_packet = {
@@ -191,7 +191,7 @@ elif app_route == sub_view:
 # ENGINE VIEW D: 🔐 SECURITY CONTROL OPERATIONS PORTAL (ADMIN)
 # ==============================================================================
 elif app_route == admin_view:
-if not st.session_state["admin_mode_active"]:
+    if not st.session_state["admin_mode_active"]:
 st.title("🔐 Administration Authorization Portal")
 system_key = st.secrets.get("ADMIN_PASSWORD", "admin_fallback_secure_99")
 with st.form("admin_security_override_form"):
