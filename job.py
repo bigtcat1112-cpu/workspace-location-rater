@@ -75,8 +75,9 @@ else:
             # Render a direct clickable link to your checkout form portal
             st.sidebar.markdown(f"[👉 Complete Payment on Stripe]({checkout_session.url})", unsafe_allow_html=True)
             st.sidebar.info("Click the secure link above to complete transaction.")
-        except Exception as e:
-            st.sidebar.error("Stripe Token Connection Failed. Make sure STRIPE_SECRET_KEY is added to your secrets.")
+                except Exception as e:
+            st.sidebar.error(f"Stripe Error: {e}")
+
 
 # -------------------------------------------------------------
 # 4. CORE FEATURES
