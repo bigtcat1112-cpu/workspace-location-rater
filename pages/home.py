@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import time
 from supabase import create_client, Client
 
 st.set_page_config(page_title="TA Workspaces", page_icon="🏢", layout="wide")
@@ -28,13 +27,13 @@ def get_mock_data():
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites'],
-        'latitude': [32.8234, 32.8440, 32.8370],
+        'latitude': [32.8236, 32.8443, 32.8371],
         'longitude': [-97.1706, -97.1432, -97.0819],
-        'rating': [4.8, 4.5, 4.2],
+        'rating': [4.8, 4.2, 4.6],
         'capacity':,
         'amenities': ['Fiber, Coffee', 'Fiber, Monitors', '24/7, Coffee'],
-        'price_per_hour': [5.0, 7.5, 12.0],
-        'description': ['Inspiring shared spaces close to home.', 'High-speed fiber internet infrastructure.', 'Premium executive office structures.']
+        'price_per_hour': [10.50, 12.00, 15.00],
+        'description': ['Shared spaces close to home.', 'High-speed fiber internet infrastructure.', 'Premium office structures.']
     })
 
 @st.cache_data(ttl=120)
@@ -62,7 +61,7 @@ if app_mode == explore_tab:
         f1, f2, f3 = st.columns(3)
         query = f1.text_input("Keyword Search", "")
         max_p = f2.slider("Max Price", 3.0, 25.0, 25.0)
-        min_r = f3.slider("Min Rating", 1.0, 5.0,  1.0)
+        min_r = f3.slider("Min Rating", 1.0, 5.0, 1.0)
 
     f_df = df_workspaces[
         (df_workspaces['name'].str.contains(query, case=False) | df_workspaces['description'].str.contains(query, case=False)) &
@@ -71,7 +70,7 @@ if app_mode == explore_tab:
 
     t1, t2 = st.tabs(["🗺️ Map View", "📊 List View"])
     with t1:
-        m_col, c_col = st.columns([2, 1])
+        m_col, c_col = st.columns()
         with m_col:
             st.map(f_df[['latitude', 'longitude']].dropna(), use_container_width=True)
         with c_col:
@@ -93,12 +92,15 @@ if app_mode == explore_tab:
             if opts[selected] != 0 and len(comment.strip()) >= 5:
                 try:
                     if supabase: supabase.table("reviews").insert({"workspace_id": int(opts[selected]), "rating": rating, "comment": comment.strip()}).execute()
-                    st.success("Review submitted!")
+                    st.success(f"Transmission Confirmed: Feedback recorded for {selected}.")
                     st.cache_data.clear()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                except Exception as tx_err:
+                    st.error(f"Database Pipeline Mutation Fault: {str(tx_err)}")
             else:
                 st.warning("Please provide a valid comment.")
+                
+    st.markdown("---")
+    st.markdown("TA Workspaces Distribution Engine • System Clock Stamp Mon, Nov 02, 2026", unsafe_allow_html=True)
 
 elif app_mode == jobs_tab:
     st.title("💼 Workspace Career Board")
