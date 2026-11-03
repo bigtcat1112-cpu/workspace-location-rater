@@ -14,7 +14,8 @@ jobs = [
 
 for job in jobs:
     with st.container(border=True):
-        col_j1, col_j2 = st.columns()
+        # FIXED: Added the number 2 inside st.columns() so it knows to make exactly 2 columns!
+        col_j1, col_j2 = st.columns(2)
         with col_j1:
             st.markdown(f"<h4 style='color: #F5F5DC; margin:0;'>{job['title']}</h4>", unsafe_allow_html=True)
             st.caption(f"📍 Location: {job['loc']}")
