@@ -38,8 +38,8 @@ def load_workspace_registry():
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
         'latitude': [32.8235, 32.8440, 32.8371, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.2, 4.6, 3.9],
-        'hourly_rate': [5.00, 8.50, 12.00, 4.50],
+        'rating': [4.7, 4.5, 4.8, 4.2],
+        'hourly_rate': [12.50, 15.00, 18.50, 10.00],
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting.',
