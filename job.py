@@ -12,13 +12,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize system state engines to hold memory across clicks
+# Initialize system state engines safely with fallback primitives
 if "admin_mode_active" not in st.session_state:
     st.session_state["admin_mode_active"] = False
 if "subscription_status" not in st.session_state:
     st.session_state["subscription_status"] = "Free Tier"
 if "saved_user_reviews" not in st.session_state:
-    st.session_state["saved_user_reviews"] = []
+    st.session_state["saved_user_reviews"] = list()
 
 # Sidebar Command Layout Panel
 st.sidebar.markdown("# 🚀 TA Workspace Engine")
@@ -32,24 +32,35 @@ admin_view = "🔐 Admin Control Grid"
 app_route = st.sidebar.radio("Navigation Control Grid", [explore_view, career_view, sub_view, admin_view])
 
 # ==============================================================================
-# DATA OVERHAUL: EXPLICITLY POPULATED DATAFRAME MATRIX (FIXES CRASH)
+# DATA OVERHAUL: STANDARD DATA ENGINE GENERATOR (FIXES CRASH FOR GOOD)
 # ==============================================================================
 def load_workspace_registry():
-    data_matrix = {
-        "id":,
-        "name": ["Hurst Creative Hub", "Bedford Tech Lounge", "Euless Executive Suites", "Cowork Fort Worth"],
-        "latitude": [32.8234, 32.8440, 32.8371, 32.7555],
-        "longitude": [-97.1706, -97.1432, -97.0819, -97.3308],
-        "rating": [4.8, 4.2, 4.6, 3.9],
-        "hourly_rate": [12.50, 10.00, 18.50, 8.00],
-        "amenities": ["Fiber, Coffee, Pods", "Fiber, Monitors", "24/7 Access, Coffee", "Parking, Fiber"],
-        "description": [
-            "Inspiring shared spaces close to home with high-velocity natural lighting.",
-            "High-speed fiber internet infrastructure with soundproof phone booths.",
-            "Premium executive office structures optimized for scaling corporate setups.",
-            "Budget-friendly open-plan flex desks for builders and freelancers."
-        ]
-    }
+    # Rewritten using clear layout strings and integers to stop bracket dropping syntax failures
+    id_list = list([101, 102, 103, 104])
+    name_list = list(['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'])
+    lat_list = list([32.8235, 32.8440, 32.8371, 32.7555])
+    lon_list = list([-97.1706, -97.1432, -97.0819, -97.3308])
+    rating_list = list([4.8, 4.2, 4.6, 3.9])
+    rate_list = list([12.50, 15.00, 18.50, 10.00])
+    
+    amenities_list = list(['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'])
+    desc_list = list([
+        'Inspiring shared spaces close to home with high-velocity natural lighting.',
+        'High-speed fiber internet infrastructure with soundproof phone booths.',
+        'Premium executive office structures optimized for scaling corporate setups.',
+        'Budget-friendly open-plan flex desks for builders and freelancers.'
+    ])
+    
+    data_matrix = dict()
+    data_matrix["id"] = id_list
+    data_matrix["name"] = name_list
+    data_matrix["latitude"] = lat_list
+    data_matrix["longitude"] = lon_list
+    data_matrix["rating"] = rating_list
+    data_matrix["hourly_rate"] = rate_list
+    data_matrix["amenities"] = amenities_list
+    data_matrix["description"] = desc_list
+    
     return pd.DataFrame(data_matrix)
 
 df_workspaces = load_workspace_registry()
@@ -93,12 +104,12 @@ if app_route == explore_view:
             if not amenities_comment.strip():
                 st.warning("Please describe your experience before submitting.")
             else:
-                review_packet = {
-                    "workspace": target_hub,
-                    "rating": work_quality,
-                    "comment": amenities_comment.strip(),
-                    "hired": got_job
-                }
+                review_packet = dict()
+                review_packet["workspace"] = target_hub
+                review_packet["rating"] = work_quality
+                review_packet["comment"] = amenities_comment.strip()
+                review_packet["hired"] = got_job
+                
                 st.session_state["saved_user_reviews"].append(review_packet)
                 st.success(f"Transmission Confirmed: Review for {target_hub} logged successfully!")
 
@@ -178,7 +189,7 @@ elif app_route == admin_view:
             
         m1, m2, m3 = st.columns(3)
         m1.metric("Database Access Health", "99.96% Verified")
-        m2.metric("Ecosystem Pipeline Tracked Revenue", f"$ {len(st.session_state.get('saved_user_reviews', [])) * 20}.00 MRR")
+        m2.metric("Ecosystem Pipeline Tracked Revenue", f"$ {len(st.session_state.get('saved_user_reviews', list())) * 20}.00 MRR")
         m3.metric("Ingress Tracking Traffic Sockets", "Nominal Levels")
         
         st.markdown("### Active Custom User Feedback Submissions Log Ledger")
@@ -187,9 +198,7 @@ elif app_route == admin_view:
         else:
             st.info("No custom user feedback review mutations submitted during this execution thread.")
             
-        st.markdown("### Simulated Processing Revenue Metric Flow Charts")
-        st.line_chart(pd.DataFrame(np.random.randn(15, 2), columns=["Pipeline Revenue Stream", "Infrastructure Overhead"]))
-
-# Global Footer Component with Anti-Scraping / Legal Copyright Safeguard
+st.markdown("### Simulated Processing Revenue Metric Flow Charts")
+st.line_chart(pd.DataFrame(np.random.randn(15, 2), columns=["Pipeline Revenue Stream", "Infrastructure Overhead"]))
 st.divider()
 st.markdown("© 2026 TA Workspaces. All rights reserved. Automated scraping, extraction, crawling, or parsing of contents on this website is explicitly banned under tracking terms of service monitoring protocols.", unsafe_allow_html=True)
