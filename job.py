@@ -36,9 +36,9 @@ def load_workspace_registry():
     return pd.DataFrame({
         'id':,
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
-        'latitude': [32.8234, 32.8443, 32.8398, 32.7555],
+        'latitude': [32.8234, 32.8440, 32.8370, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.5, 4.2, 3.9],
+        'rating': [4.8, 4.2, 4.6, 3.9],
         'hourly_rate': [12.50, 15.00, 18.50, 10.00],
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
         'description': [
@@ -139,7 +139,7 @@ elif app_route == sub_view:
         st.caption("Secure multi-device processing checkout router enabled via dynamic API parameters dashboard bindings.")
         
         if st.session_state["subscription_status"] == "Free Tier":
-            if st.button("Initialize Stripe Pro Checkout Checkout"):
+            if st.button("Initialize Stripe Pro Checkout"):
                 st.session_state["subscription_status"] = "Premium Pro Member"
                 st.balloons()
                 st.success("Payment Sequence Complete! Pro features unlocked across your account.")
