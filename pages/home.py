@@ -37,7 +37,7 @@ app_mode = st.sidebar.radio("Navigation Control Matrix", [explore_tab, jobs_tab,
 # MODULE 2: DATABASE CONNECTION POOLING WORKFLOWS (SUPABASE ADAPTER)
 # ==============================================================================
 @st.cache_resource
-def init_supabase_client() -> Client:
+def init_supabase_client():
     """Safely extracts ecosystem variables to authorize the analytical pipelines."""
     try:
         url = st.secrets["SUPABASE_URL"]
@@ -56,10 +56,10 @@ def get_mock_datastore() -> pd.DataFrame:
         'name': ['Hurst Creative Hub', 'Bedford Tech Lounge', 'Euless Executive Suites', 'Cowork Fort Worth'],
         'latitude': [32.8234, 32.8440, 32.8370, 32.7555],
         'longitude': [-97.1706, -97.1432, -97.0819, -97.3308],
-        'rating': [4.8, 4.5, 4.2, 4.6],
+        'rating': [4.8, 4.2, 3.9, 4.6],
         'capacity':,
         'amenities': ['Fiber, Coffee, Pods', 'Fiber, Monitors', '24/7 Access, Coffee', 'Parking, Fiber'],
-        'price_per_hour': [5.50, 7.00, 12.50, 4.00],
+        'price_per_hour': [5.00, 7.50, 12.00, 4.50],
         'description': [
             'Inspiring shared spaces close to home with high-velocity natural lighting setups.',
             'High-speed fiber internet infrastructure with soundproof phone booths.',
