@@ -72,12 +72,23 @@ else:
                 success_url=f"{app_url}?session_id={{CHECKOUT_SESSION_ID}}",
                 cancel_url=app_url,
             )
+               # Generate an active external Stripe Checkout session link when requested
+    if st.sidebar.button("Subscribe Now ($20/mo)"):
+        try:
+            # Your live hosting domain fully integrated
+            app_url = "https://streamlit.app" 
+            
+            checkout_session = stripe.checkout.Session.create(
+                line_items=[{'price': PRICE_ID, 'quantity': 1}],
+                mode='subscription',
+                success_url=f"{app_url}?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=app_url,
+            )
             # Render a direct clickable link to your checkout form portal
             st.sidebar.markdown(f"[👉 Complete Payment on Stripe]({checkout_session.url})", unsafe_allow_html=True)
             st.sidebar.info("Click the secure link above to complete transaction.")
-                except Exception as e:
+        except Exception as e:
             st.sidebar.error(f"Stripe Error: {e}")
-
 
 # -------------------------------------------------------------
 # 4. CORE FEATURES
