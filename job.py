@@ -7,7 +7,7 @@ from datetime import date
 # -------------------------------------------------------------
 # 1. STRIPE API INTEGRATION SETUP
 # -------------------------------------------------------------
-stripe.api_key = st.secrets.get("STRIPE_SECRET_KEY", "mock_key_if_missing")
+stripe.api_key = st.secrets.get("STRIPE_SECRET_KEY", "secret_key")
 PRICE_ID = "price_1UXNrfEbNBWTyWzqE2qkw78S"
 
 # -------------------------------------------------------------
