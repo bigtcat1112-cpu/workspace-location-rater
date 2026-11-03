@@ -63,19 +63,6 @@ else:
     if st.sidebar.button("Subscribe Now ($20/mo)"):
         try:
             # Your live hosting domain fully integrated
-            app_url = "https://workspace-location-rater-jnegy9jvnqwzeuvxfifqtv.streamlit.app/" 
-            
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{'price': PRICE_ID, 'quantity': 1}],
-                mode='subscription',
-                success_url=f"{app_url}?session_id={{CHECKOUT_SESSION_ID}}",
-                cancel_url=app_url,
-            )
-               # Generate an active external Stripe Checkout session link when requested
-    if st.sidebar.button("Subscribe Now ($20/mo)"):
-        try:
-            # Your live hosting domain fully integrated
             app_url = "https://streamlit.app" 
             
             checkout_session = stripe.checkout.Session.create(
